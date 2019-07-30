@@ -63,5 +63,3 @@ NeuVector Exporter
 
 ####		4. You should get the dashboard and see data on it.
 
-# nv_exporter
-# nv_exporter
