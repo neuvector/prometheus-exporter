@@ -5,11 +5,13 @@ import requests
 import sys
 import time
 import urllib3
+import argparse
+
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 class apiCollector(object):
   def __init__(self, endpoint):
-    self._endpoint = endpoint.split('+')
+    self._endpoint = endpoint
   def collect(self):
     for target in self._endpoint:
         ep1 = target.split(':')
@@ -180,10 +182,15 @@ class apiCollector(object):
 
 
 if __name__ == '__main__':
-  # Usage: exporter.py port target1+target2+...
-  # example: python3 nv_exporter.py 1234 10.1.22.11:30443+10.1.22.14:30444
-  start_http_server(int(sys.argv[1]))
-  REGISTRY.register(apiCollector(sys.argv[2]))
+  # Usage: exporter.py -p port -s target1 -s target2 ...
+  # example: python3 nv_exporter.py -p 1234 -s 10.1.22.11:30443 -s 10.1.22.14:30444
+  parser = argparse.ArgumentParser(description='NeuVector command line.')
+  parser.add_argument("-p", "--port", type=int, help="controller port")
+  parser.add_argument("-s", "--server", action='append', help="controller IP address")
+  argss = parser.parse_args()
+  if argss.port and argss.server:
+    start_http_server(argss.port)
+    REGISTRY.register(apiCollector(argss.server))
 
-  while True: time.sleep(15)
+  while True: time.sleep(30)
 

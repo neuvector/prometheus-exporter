@@ -12,8 +12,8 @@ NeuVector Exporter
 			$ sudo pip install prometheus_client requests
 
 ####		4. Run exporter:
-			$ python3 nv_exporter.py [Exporter_Port] [Target_IP:Target_Port]
-			(example: $ python3 nv_exporter.py 1234 10.1.22.11:30443, for more targets use "+" to separate: $ python3 nv_exporter.py 1234 10.1.22.11:30443+10.1.22.12:34567)
+			$ python3 nv_exporter.py -p [Exporter_Port] -s [API_Host:API_Port]
+			(example: $ python3 nv_exporter.py -p 1234 -s 10.1.22.11:30443, for more API targets: $ python3 nv_exporter.py -p 1234 -s 10.1.22.11:30443 -s 10.1.22.12:34567)
 
 ####		5.	Open browser, go to: 
 			[Exporter_Host]:[Exporter_Port] (example: 10.1.22.11:1234)
@@ -25,22 +25,23 @@ NeuVector Exporter
 
 ##	2nd Prometheus Setup:
 
-####		1. Add exporter target in your prometheus.yml file under "scrape_configs":
+####		1. Add exporter target in your prometheus.yml file under `scrape_configs`:
 			global:
-			  scrape_interval: 10s
 			  evaluation_interval: 10s
 
 			scrape_configs:
 			  - job_name: prometheus
+			    scrape_interval: 10s
 			    static_configs:
 			      - targets: ["localhost:9090"]
 #### 	add:
 			  - job_name: nv-exporter
+			    scrape_interval: 30s
 			    static_configs:
 			      - targets: ["[Exporter_Host]:[Exporter_Port]"]
 			      (example: - targets: ["10.1.22.11:1234"])
 
-####		2. You can also change the scrape interval above under the `global`section
+####		2. You can also change the scrape interval
 
 ####		3. After deployed Prometheus, open browser and go to:
 			Prometheus_Host:9090 (example: localhost:9090)
