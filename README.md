@@ -27,20 +27,21 @@ NeuVector Exporter
 
 ####		1. Add exporter target in your prometheus.yml file under `scrape_configs`:
 			global:
-			  scrape_interval: 10s
 			  evaluation_interval: 10s
 
 			scrape_configs:
 			  - job_name: prometheus
+			    scrape_interval: 10s
 			    static_configs:
 			      - targets: ["localhost:9090"]
 #### 	add:
 			  - job_name: nv-exporter
+			    scrape_interval: 30s
 			    static_configs:
 			      - targets: ["[Exporter_Host]:[Exporter_Port]"]
 			      (example: - targets: ["10.1.22.11:1234"])
 
-####		2. You can also change the scrape interval above under the `global`section
+####		2. You can also change the scrape interval
 
 ####		3. After deployed Prometheus, open browser and go to:
 			Prometheus_Host:9090 (example: localhost:9090)
