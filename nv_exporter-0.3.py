@@ -185,7 +185,6 @@ if __name__ == '__main__':
   # Usage: exporter.py -p port -s target1 -s target2 ...
   # example: python3 nv_exporter.py -p 1234 -s 10.1.22.11:30443 -s 10.1.22.14:30444
   parser = argparse.ArgumentParser(description='NeuVector command line.')
-  parser.add_argument('-d', '--debug', action="store_true", help='enable debug')
   parser.add_argument("-p", "--port", type=int, help="controller port")
   parser.add_argument("-s", "--server", action='append', help="controller IP address")
   argss = parser.parse_args()
