@@ -12,8 +12,8 @@ NeuVector Exporter
 			$ sudo pip install prometheus_client requests
 
 ####		4. Run exporter:
-			$ python3 nv_exporter.py [Exporter_Port] [API_Host:API_Port]
-			(example: $ python3 nv_exporter.py 1234 10.1.22.11:30443, for more targets use `-host` to separate: $ python3 nv_exporter.py -host 1234 10.1.22.11:30443 -host 10.1.22.12:34567)
+			$ python3 nv_exporter.py -p [Exporter_Port] -s [API_Host:API_Port]
+			(example: $ python3 nv_exporter.py -p 1234 -s 10.1.22.11:30443, for more API targets: $ python3 nv_exporter.py -p 1234 -s 10.1.22.11:30443 -s 10.1.22.12:34567)
 
 ####		5.	Open browser, go to: 
 			[Exporter_Host]:[Exporter_Port] (example: 10.1.22.11:1234)
