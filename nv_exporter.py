@@ -168,11 +168,11 @@ class apiCollector(object):
         vsnamelist = []
         vidlist = []
         for c in json.loads(response.text)['violations']:
-                vtimelist.append(c['reported_timestamp'])
-                vcnamelist.append(c['client_name'])
-                vnamelist.append(c['cluster_name'])
-                vsnamelist.append(c['server_name'])
-                vidlist.append(c['client_id']+c['server_id'])
+            vtimelist.append(c['reported_timestamp'])
+            vcnamelist.append(c['client_name'])
+            vnamelist.append(c['cluster_name'])
+            vsnamelist.append(c['server_name'])
+            vidlist.append(c['client_id']+c['server_id'])
         for x in range(0,5):
             metric.add_sample('nv_log_events', value=vtimelist[x]*1000, labels={'log': "violation", 'id': vidlist[x], 'toname': " -> " +vsnamelist[x], 'fromname': vcnamelist[x], 'name': vnamelist[x],  'target': ep})
         yield metric
