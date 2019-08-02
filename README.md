@@ -1,5 +1,7 @@
 # Prometheus exporter and Grafana template
 
+![](nv_grafana.png)
+
 ### NV_Exporter Setup:
 
 - Clone the repository
