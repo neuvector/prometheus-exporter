@@ -5,11 +5,13 @@ NeuVector Exporter
 ####		1. Download nv_exporter.py
 
 ####		2. Make sure you installed Python 3
+			$ sudo apt install python3
+			$ sudo apt install python3-pip
 
 ####		3. Install the Prometheus Python client:
 			$ sudo pip install -U setuptools
 			$ sudo pip install -U pip
-			$ sudo pip install prometheus_client requests
+			$ sudo pip3 install prometheus_client requests
 
 ####		4. Run exporter:
 			$ python3 nv_exporter.py -p [Exporter_Port] -s [API_Host:API_Port]
