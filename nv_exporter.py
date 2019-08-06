@@ -68,7 +68,8 @@ class apiCollector(object):
             else: port_exists = True
             if port_exists is True:
                 for k in c['ports']: 
-                    metric.add_sample('nv_conversation_bytes', value=c['bytes'], labels={'port': k, 'from': c['from'], 'to': c['to'], 'target':ep})
+                    if c['bytes'] is not 0:
+                        metric.add_sample('nv_conversation_bytes', value=c['bytes'], labels={'port': k, 'from': c['from'], 'to': c['to'], 'target':ep})
         yield metric
 
     #Get enforcer
