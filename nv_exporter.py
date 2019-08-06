@@ -200,5 +200,5 @@ if __name__ == '__main__':
     start_http_server(argss.export)
     REGISTRY.register(apiCollector(argss.server))
 
-  while True: time.sleep(10)
+  while True: time.sleep(30)
 
