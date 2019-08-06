@@ -18,7 +18,7 @@ $ sudo pip3 install prometheus_client requests
 ```
 - Run exporter, the default username and password are both `admin`:
 ```
-$ python3 nv_exporter.py -e [Exporter_Port] -s [Neuvector_API_Host:API_Port] -u [Username] -p [Password]
+$ python3 nv_exporter.py -e [experter_eort] -s [neuvector_api_host:api_port] -u [username] -p [password]
 ```
 (example: $ python3 nv_exporter.py -e 1234 -s 10.1.22.11:30443 -u admin -p admin, for more API targets: $ python3 nv_exporter.py -e 1234 -s 10.1.22.11:30443 -s 10.1.22.12:34567 -u admin -p admin)
 
