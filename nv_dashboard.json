@@ -15,7 +15,7 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "id": 1,
+  "id": 2,
   "links": [],
   "panels": [
     {
@@ -483,7 +483,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(rate(nv_conversation_bytes[1m]))*2",
+          "expr": "sum(rate(nv_conversation_bytes[1m]))*4",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "bytes per minute",
@@ -1351,7 +1351,7 @@
       "type": "table"
     }
   ],
-  "refresh": "1m",
+  "refresh": "5s",
   "schemaVersion": 18,
   "style": "dark",
   "tags": [],
@@ -1359,7 +1359,7 @@
     "list": []
   },
   "time": {
-    "from": "now-5m",
+    "from": "now-1h",
     "to": "now"
   },
   "timepicker": {
@@ -1388,7 +1388,7 @@
     ]
   },
   "timezone": "",
-  "title": "NV1",
-  "uid": "8a-laqSWk",
-  "version": 3
+  "title": "NV-dashboard",
+  "uid": "nv_dashboard0001",
+  "version": 1
 }
