@@ -7,8 +7,8 @@
 - Clone the repository
 - Make sure you installed Python 3 and python3-pip:
 ```
-$ sudo apt install python3
-$ sudo apt install python3-pip
+$ sudo apt-get install python3
+$ sudo apt-get install python3-pip
 ```
 - Install the Prometheus Python client:
 ```
@@ -22,7 +22,7 @@ $ python3 nv_exporter.py -p [Exporter_Port] -s [Neuvector_API_Host:API_Port]
 ```
 (example: $ python3 nv_exporter.py -p 1234 -s 10.1.22.11:30443, for more API targets: $ python3 nv_exporter.py -p 1234 -s 10.1.22.11:30443 -s 10.1.22.12:34567)
 
-- Open browser, go to: [Exporter_Host]:[Exporter_Port] (example: 10.1.22.11:1234)
+- Open browser, go to: [exporter_host]:[exporter_port] (example: 10.1.22.11:1234)
 - If you can load the metric page, the exporter is working fine.
 
 ### Prometheus Setup:
@@ -40,7 +40,7 @@ scrape_configs:
   - job_name: nv-exporter
     scrape_interval: 30s
     static_configs:
-      - targets: ["[Exporter_Host]:[Exporter_Port]"]
+      - targets: ["[exporter_host]:[exporter_port]"]
       (example: - targets: ["10.1.22.11:1234"])
 ```
 
