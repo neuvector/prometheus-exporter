@@ -5,12 +5,16 @@
 ### NV_Exporter Setup:
 
 - Clone the repository
-- Make sure you installed Python 3
+- Make sure you installed Python 3 and python3-pip:
+```
+$ sudo apt install python3
+$ sudo apt install python3-pip
+```
 - Install the Prometheus Python client:
 ```
 $ sudo pip install -U setuptools
 $ sudo pip install -U pip
-$ sudo pip install prometheus_client requests
+$ sudo pip3 install prometheus_client requests
 ```
 - Run exporter:
 ```
