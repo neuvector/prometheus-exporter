@@ -8,6 +8,8 @@ import urllib3
 import argparse
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+iusername = 'admin'
+ipassword = 'admin'
 
 class apiCollector(object):
   def __init__(self, endpoint):
@@ -18,7 +20,7 @@ class apiCollector(object):
         ep = ep1[0]
   
     #Login and get token
-        data = '{"password": {"username": "admin", "password": "admin"}}'
+        data = '{"password": {"username": "'+iusername+'", "password": "'+ipassword+'"}}'
         headers = {'Content-Type': 'application/json'}
         response = requests.post('https://' +target+ '/v1/auth', headers=headers, data=data, verify=False)
         token = json.loads(response.text)["token"]["token"]
@@ -66,7 +68,8 @@ class apiCollector(object):
             else: port_exists = True
             if port_exists is True:
                 for k in c['ports']: 
-                    metric.add_sample('nv_conversation_bytes', value=c['bytes'], labels={'port': k, 'from': c['from'], 'to': c['to'], 'target':ep})
+                    if c['bytes'] is not 0:
+                        metric.add_sample('nv_conversation_bytes', value=c['bytes'], labels={'port': k, 'from': c['from'], 'to': c['to'], 'target':ep})
         yield metric
 
     #Get enforcer
@@ -168,11 +171,11 @@ class apiCollector(object):
         vsnamelist = []
         vidlist = []
         for c in json.loads(response.text)['violations']:
-            vtimelist.append(c['reported_timestamp'])
-            vcnamelist.append(c['client_name'])
-            vnamelist.append(c['cluster_name'])
-            vsnamelist.append(c['server_name'])
-            vidlist.append(c['client_id']+c['server_id'])
+                vtimelist.append(c['reported_timestamp'])
+                vcnamelist.append(c['client_name'])
+                vnamelist.append(c['cluster_name'])
+                vsnamelist.append(c['server_name'])
+                vidlist.append(c['client_id']+c['server_id'])
         for x in range(0,5):
             metric.add_sample('nv_log_events', value=vtimelist[x]*1000, labels={'log': "violation", 'id': vidlist[x], 'toname': " -> " +vsnamelist[x], 'fromname': vcnamelist[x], 'name': vnamelist[x],  'target': ep})
         yield metric
@@ -182,14 +185,20 @@ class apiCollector(object):
 
 
 if __name__ == '__main__':
-  # Usage: exporter.py -p port -s target1 -s target2 ...
-  # example: python3 nv_exporter.py -p 1234 -s 10.1.22.11:30443 -s 10.1.22.14:30444
+  # Usage: exporter.py -e export -s target -u username -p password
+  # example: python3 nv_exporter.py -e 1234 -s 10.1.22.11:30443 -s 10.1.22.12:30443 -u admin -p admin
   parser = argparse.ArgumentParser(description='NeuVector command line.')
-  parser.add_argument("-p", "--port", type=int, help="controller port")
+  parser.add_argument("-e", "--export", type=int, help="controller export")
   parser.add_argument("-s", "--server", action='append', help="controller IP address")
+  parser.add_argument("-u", "--username", type=str, help="username")
+  parser.add_argument("-p", "--password", type=str, help="password")
   argss = parser.parse_args()
-  if argss.port and argss.server:
-    start_http_server(argss.port)
+
+  if argss.export and argss.server:
+    if argss.username and argss.password:
+      iusername = argss.username
+      ipassword = argss.password
+    start_http_server(argss.export)
     REGISTRY.register(apiCollector(argss.server))
 
   while True: time.sleep(30)

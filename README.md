@@ -16,11 +16,11 @@ $ sudo pip install -U setuptools
 $ sudo pip install -U pip
 $ sudo pip3 install prometheus_client requests
 ```
-- Run exporter:
+- Run exporter, the default username and password are both `admin`:
 ```
-$ python3 nv_exporter.py -p [Exporter_Port] -s [Neuvector_API_Host:API_Port]
+$ python3 nv_exporter.py -e [experter_port] -s [neuvector_api_host:api_port] -u [username] -p [password]
 ```
-(example: $ python3 nv_exporter.py -p 1234 -s 10.1.22.11:30443, for more API targets: $ python3 nv_exporter.py -p 1234 -s 10.1.22.11:30443 -s 10.1.22.12:34567)
+(example: $ python3 nv_exporter.py -e 1234 -s 10.1.22.11:30443 -u admin -p admin, for more API targets: $ python3 nv_exporter.py -e 1234 -s 10.1.22.11:30443 -s 10.1.22.12:34567 -u admin -p admin)
 
 - Open browser, go to: [exporter_host]:[exporter_port] (example: 10.1.22.11:1234)
 - If you can load the metric page, the exporter is working fine.
