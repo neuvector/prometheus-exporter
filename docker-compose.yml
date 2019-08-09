@@ -2,7 +2,7 @@ prometheus-exporter:
     image: neuvector/prometheus-exporter
     container_name: neuvector.prometheus-exporter
     environment:
-        - CTRL_API_SERVICE=127.0.0.1:10443
+        - CTRL_API_SERVICE=neuvector-svc-prometheus-exporter.neuvector:10443
         - CTRL_USERNAME=admin
         - CTRL_PASSWORD=admin
         - EXPORTER_PORT=8068
