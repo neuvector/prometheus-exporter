@@ -4,6 +4,7 @@
 
 ### NV_Exporter Setup:
 
+#### To run the exporter as Python program
 - Clone the repository
 - Make sure you installed Python 3 and python3-pip:
 ```
@@ -16,6 +17,9 @@ $ sudo pip3 install -U setuptools
 $ sudo pip3 install -U pip
 $ sudo pip3 install prometheus_client requests
 ```
+
+#### To run the exporter as a container
+It's easier to start NeuVector exporter as a container. The following section describe how to start the exporter in the Docker environment. A kubernetes sample yaml file, nv_exporter.yml, is also included.
 
 - Modify both docker-compose.yml and nv_exporter.yml. Specify NeuVector controller's RESTful API endpoint `CTRL_API_SERVICE`, login username `CTRL_USERNAME`, password `CTRL_PASSWORD`, and the port that the export listens on through environment variables `EXPORTER_PORT`. **It's highly recommanded to create a read-only user account for the exporter.**
 - Start NeuVector exporter container.
