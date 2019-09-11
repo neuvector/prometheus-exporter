@@ -70,23 +70,28 @@ class apiCollector(object):
                               labels={'target': ep})
             # Convert time, set CVEDB create time
             dt = sjson["summary"]["cvedb_create_time"]
-            dt1 = dt.split('-')  #Year, Mon
-            dt2 = dt1[2].split('T')  #Day
-            dt3 = dt2[1].split(':')  #Hour, Min
-            dt4 = dt3[2].split('Z')  #Sec
-            ap = 'AM'
-            if int(dt3[0]) > 12:
-                ap = 'PM'
-                dt3[0] = int(dt3[0]) - 12
-            time0 = datetime.strptime('12 31 1969  5:00:00PM',
-                                      '%m %d %Y %I:%M:%S%p')
-            time1 = dt1[1] + ' ' + dt2[0] + ' ' + dt1[0] + '  ' + dt3[
-                0] + ':' + dt3[1] + ':' + dt4[0] + ap
-            time2 = datetime.strptime(time1, '%m %d %Y %I:%M:%S%p')
-            diff = int((time2 - time0).total_seconds() * 1000)
-            metric.add_sample('nv_summary_cvedbTime',
-                              value=diff,
-                              labels={'target': ep})
+            if not dt:
+                metric.add_sample('nv_summary_cvedbTime',
+                                  value=0,
+                                  labels={'target': ep})
+            else:
+                dt1 = dt.split('-')  #Year, Mon
+                dt2 = dt1[2].split('T')  #Day
+                dt3 = dt2[1].split(':')  #Hour, Min
+                dt4 = dt3[2].split('Z')  #Sec
+                ap = 'AM'
+                if int(dt3[0]) > 12:
+                    ap = 'PM'
+                    dt3[0] = int(dt3[0]) - 12
+                time0 = datetime.strptime('12 31 1969  5:00:00PM',
+                                          '%m %d %Y %I:%M:%S%p')
+                time1 = dt1[1] + ' ' + dt2[0] + ' ' + dt1[0] + '  ' + dt3[
+                    0] + ':' + dt3[1] + ':' + dt4[0] + ap
+                time2 = datetime.strptime(time1, '%m %d %Y %I:%M:%S%p')
+                diff = int((time2 - time0).total_seconds() * 1000)
+                metric.add_sample('nv_summary_cvedbTime',
+                                  value=diff,
+                                  labels={'target': ep})
             yield metric
 
         # Get conversation
@@ -175,17 +180,20 @@ class apiCollector(object):
         except requests.exceptions.RequestException as e:
             print(e)
         else:
-            djson = json.loads(response.text)
-            # Set admission metrics
-            metric = Metric('nv_admission', 'Debug admission stats of ' + ep,
-                            'gauge')
-            metric.add_sample('nv_admission_allowed',
-                              value=djson['stats']['k8s_allowed_requests'],
-                              labels={'target': ep})
-            metric.add_sample('nv_admission_denied',
-                              value=djson['stats']['k8s_denied_requests'],
-                              labels={'target': ep})
-            yield metric
+            if response.status_code != 200:
+                print("Admission control stats request failed: %s" % response)
+            else:
+                djson = json.loads(response.text)
+                # Set admission metrics
+                metric = Metric('nv_admission', 'Debug admission stats of ' + ep,
+                                'gauge')
+                metric.add_sample('nv_admission_allowed',
+                                  value=djson['stats']['k8s_allowed_requests'],
+                                  labels={'target': ep})
+                metric.add_sample('nv_admission_denied',
+                                  value=djson['stats']['k8s_denied_requests'],
+                                  labels={'target': ep})
+                yield metric
 
         # Get image vulnerability
         try:
