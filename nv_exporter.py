@@ -13,10 +13,36 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 session = requests.Session()
 
+def _login(ctrl_url, ctrl_user, ctrl_pass):
+    print("Login to controller ...")
+    data = '{"password": {"username": "' + ctrl_user + '", "password": "' + ctrl_pass + '"}}'
+    headers = {'Content-Type': 'application/json'}
+    try:
+        response = requests.post(ctrl_url + '/v1/auth',
+                                 headers=headers,
+                                 data=data,
+                                 verify=False)
+    except requests.exceptions.RequestException as e:
+        print(e)
+        return -1
+
+    if response.status_code != 200:
+        message = json.loads(response.text)["message"]
+        print(message)
+        return -1
+
+    token = json.loads(response.text)["token"]["token"]
+
+    # Update request session
+    session.headers.update({"Content-Type": "application/json"})
+    session.headers.update({'X-Auth-Token': token})
+    return 0
 
 class apiCollector(object):
-    def __init__(self, endpoint):
+    def __init__(self, endpoint, ctrl_user, ctrl_pass):
         self._endpoint = endpoint
+        self._user = ctrl_user
+        self._pass = ctrl_pass
         self._url = "https://" + endpoint
 
     def sigterm_handler(self, _signo, _stack_frame):
@@ -24,17 +50,30 @@ class apiCollector(object):
         session.delete(self._url + '/v1/auth')
         sys.exit(0)
 
+    def get(self, path):
+        retry = 0
+        while retry < 2:
+            try:
+                response = session.get(self._url + path, verify=False)
+            except requests.exceptions.RequestException as e:
+                print(e)
+                retry += 1
+            else:
+                if response.status_code == 401:
+                    self._login(self._url, self._user, self._pass)
+                    retry += 1
+                else:
+                    return response
+
+        print("Failed to GET " + path)
+
     def collect(self):
         eps = self._endpoint.split(':')
         ep = eps[0]
 
         # Get system summary
-        try:
-            response = session.get(self._url + '/v1/system/summary',
-                                   verify=False)
-        except requests.exceptions.RequestException as e:
-            print(e)
-        else:
+        response = self.get('/v1/system/summary')
+        if response:
             sjson = json.loads(response.text)
             # Set summary metrics
             metric = Metric('nv_summary', 'A summary of ' + ep, 'summary')
@@ -65,9 +104,15 @@ class apiCollector(object):
             metric.add_sample('nv_summary_disconnectedEnforcers',
                               value=sjson["summary"]["disconnected_enforcers"],
                               labels={'target': ep})
-            metric.add_sample('nv_summary_cvedbVersion',
-                              value=sjson["summary"]["cvedb_version"],
-                              labels={'target': ep})
+            dt = sjson["summary"]["cvedb_create_time"]
+            if not dt:
+                metric.add_sample('nv_summary_cvedbVersion',
+                                  value=1.0,
+                                  labels={'target': ep})
+            else:
+                metric.add_sample('nv_summary_cvedbVersion',
+                                  value=sjson["summary"]["cvedb_version"],
+                                  labels={'target': ep})
             # Convert time, set CVEDB create time
             dt = sjson["summary"]["cvedb_create_time"]
             if not dt:
@@ -75,32 +120,15 @@ class apiCollector(object):
                                   value=0,
                                   labels={'target': ep})
             else:
-                dt1 = dt.split('-')  #Year, Mon
-                dt2 = dt1[2].split('T')  #Day
-                dt3 = dt2[1].split(':')  #Hour, Min
-                dt4 = dt3[2].split('Z')  #Sec
-                ap = 'AM'
-                if int(dt3[0]) > 12:
-                    ap = 'PM'
-                    dt3[0] = int(dt3[0]) - 12
-                time0 = datetime.strptime('12 31 1969  5:00:00PM',
-                                          '%m %d %Y %I:%M:%S%p')
-                time1 = dt1[1] + ' ' + dt2[0] + ' ' + dt1[0] + '  ' + dt3[
-                    0] + ':' + dt3[1] + ':' + dt4[0] + ap
-                time2 = datetime.strptime(time1, '%m %d %Y %I:%M:%S%p')
-                diff = int((time2 - time0).total_seconds() * 1000)
+                ts = time.strptime(dt, '%Y-%m-%dT%H:%M:%SZ')
                 metric.add_sample('nv_summary_cvedbTime',
-                                  value=diff,
+                                  value=time.mktime(ts) * 1000,
                                   labels={'target': ep})
             yield metric
 
         # Get conversation
-        try:
-            response = session.get(self._url + '/v1/conversation',
-                                   verify=False)
-        except requests.exceptions.RequestException as e:
-            print(e)
-        else:
+        response = self.get('/v1/conversation')
+        if response:
             # Set conversation metrics
             metric = Metric('nv_conversation', 'conversation of ' + ep,
                             'gauge')
@@ -125,42 +153,35 @@ class apiCollector(object):
             yield metric
 
         # Get enforcer
-        try:
-            response = session.get(self._url + '/v1/enforcer', verify=False)
-        except requests.exceptions.RequestException as e:
-            print(e)
-        else:
+        response = self.get('/v1/enforcer')
+        if response:
             # Read each enforcer, set enforcer metrics
             metric = Metric('nv_enforcer', 'enforcers of ' + ep, 'gauge')
             for c in json.loads(response.text)['enforcers']:
-                response2 = session.get(self._url + '/v1/enforcer/' + c['id'] +
-                                        '/stats',
-                                        verify=False)
-                ejson = json.loads(response2.text)
-                metric.add_sample('nv_enforcer_cpu',
-                                  value=ejson['stats']['span_1']['cpu'],
-                                  labels={
-                                      'id': c['id'],
-                                      'host': c['host_name'],
-                                      'display': c['display_name'],
-                                      'target': ep
-                                  })
-                metric.add_sample('nv_enforcer_memory',
-                                  value=ejson['stats']['span_1']['memory'],
-                                  labels={
-                                      'id': c['id'],
-                                      'host': c['host_name'],
-                                      'display': c['display_name'],
-                                      'target': ep
-                                  })
+                response2 = self.get('/v1/enforcer/' + c['id'] + '/stats')
+                if response2:
+                    ejson = json.loads(response2.text)
+                    metric.add_sample('nv_enforcer_cpu',
+                                      value=ejson['stats']['span_1']['cpu'],
+                                      labels={
+                                          'id': c['id'],
+                                          'host': c['host_name'],
+                                          'display': c['display_name'],
+                                          'target': ep
+                                      })
+                    metric.add_sample('nv_enforcer_memory',
+                                      value=ejson['stats']['span_1']['memory'],
+                                      labels={
+                                          'id': c['id'],
+                                          'host': c['host_name'],
+                                          'display': c['display_name'],
+                                          'target': ep
+                                      })
             yield metric
 
         # Get host
-        try:
-            response = session.get(self._url + '/v1/host', verify=False)
-        except requests.exceptions.RequestException as e:
-            print(e)
-        else:
+        response = self.get('/v1/host')
+        if response:
             # Set host metrics
             metric = Metric('nv_host', 'host information of ' + ep, 'gauge')
             for c in json.loads(response.text)['hosts']:
@@ -174,12 +195,8 @@ class apiCollector(object):
             yield metric
 
         # Get debug admission stats
-        try:
-            response = session.get(self._url + '/v1/debug/admission_stats',
-                                   verify=False)
-        except requests.exceptions.RequestException as e:
-            print(e)
-        else:
+        response = self.get('/v1/debug/admission_stats')
+        if response:
             if response.status_code != 200:
                 print("Admission control stats request failed: %s" % response)
             else:
@@ -196,23 +213,14 @@ class apiCollector(object):
                 yield metric
 
         # Get image vulnerability
-        try:
-            response = session.get(self._url + '/v1/scan/registry',
-                                   verify=False)
-        except requests.exceptions.RequestException as e:
-            print(e)
-        else:
+        response = self.get('/v1/scan/registry')
+        if response:
             # Set vulnerability metrics
             metric = Metric('nv_image_vulnerability',
                             'image vulnerability of ' + ep, 'gauge')
             for c in json.loads(response.text)['summarys']:
-                try:
-                    response2 = session.get(self._url + '/v1/scan/registry/' +
-                                            c['name'] + '/images',
-                                            verify=False)
-                except requests.exceptions.RequestException as e:
-                    print(e)
-                else:
+                response2 = self.get('/v1/scan/registry' + c['name'] + '/images')
+                if response2:
                     for i in json.loads(response2.text)['images']:
                         metric.add_sample('nv_image_vulnerabilityHigh',
                                           value=i['high'],
@@ -231,12 +239,8 @@ class apiCollector(object):
             yield metric
 
         # Get container vulnerability
-        try:
-            response = session.get(self._url + '/v1/scan/workload',
-                                   verify=False)
-        except requests.exceptions.RequestException as e:
-            print(e)
-        else:
+        response = self.get('/v1/scan/workload')
+        if response:
             # Set vulnerability metrics
             cvlist = []
             metric = Metric('nv_container_vulnerability',
@@ -267,11 +271,8 @@ class apiCollector(object):
         # Set Log metrics
         metric = Metric('nv_log', 'log of ' + ep, 'gauge')
         # Get log threat
-        try:
-            response = session.get(self._url + '/v1/log/threat', verify=False)
-        except requests.exceptions.RequestException as e:
-            print(e)
-        else:
+        response = self.get('/v1/log/threat')
+        if response:
             # Set threat
             ttimelist = []
             tnamelist = []
@@ -297,12 +298,8 @@ class apiCollector(object):
                                   })
 
         # Get log incident
-        try:
-            response = session.get(self._url + '/v1/log/incident',
-                                   verify=False)
-        except requests.exceptions.RequestException as e:
-            print(e)
-        else:
+        response = self.get('/v1/log/incident')
+        if response:
             # Set incident metrics
             itimelist = []
             inamelist = []
@@ -333,12 +330,8 @@ class apiCollector(object):
                                   })
 
         # Get log violation
-        try:
-            response = session.get(self._url + '/v1/log/violation',
-                                   verify=False)
-        except requests.exceptions.RequestException as e:
-            print(e)
-        else:
+        response = self.get('/v1/log/violation')
+        if response:
             # Set violation metrics
             vtimelist = []
             vnamelist = []
@@ -416,34 +409,14 @@ if __name__ == '__main__':
         ctrl_pass = "admin"
 
     # Login and get token
-    print("Login to controller ...")
-    data = '{"password": {"username": "' + ctrl_user + '", "password": "' + ctrl_pass + '"}}'
-    headers = {'Content-Type': 'application/json'}
-    try:
-        response = requests.post('https://' + ctrl_svc + '/v1/auth',
-                                 headers=headers,
-                                 data=data,
-                                 verify=False)
-    except requests.exceptions.RequestException as e:
-        print(e)
+    if _login("https://" + ctrl_svc, ctrl_user, ctrl_pass) < 0:
         sys.exit(1)
-
-    if response.status_code != 200:
-        message = json.loads(response.text)["message"]
-        print(message)
-        sys.exit(1)
-
-    token = json.loads(response.text)["token"]["token"]
-
-    # Create request session
-    session.headers.update({"Content-Type": "application/json"})
-    session.headers.update({'X-Auth-Token': token})
 
     print("Start exporter server ...")
     start_http_server(port)
 
     print("Register collector ...")
-    collector = apiCollector(ctrl_svc)
+    collector = apiCollector(ctrl_svc, ctrl_user, ctrl_pass)
     REGISTRY.register(collector)
     signal.signal(signal.SIGTERM, collector.sigterm_handler)
 
