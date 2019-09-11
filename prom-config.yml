@@ -1,0 +1,9 @@
+scrape_configs:
+  - job_name: prometheus
+    scrape_interval: 10s
+    static_configs:
+      - targets: ["localhost:9090"]
+  - job_name: nv-exporter
+    scrape_interval: 30s
+    static_configs:
+        - targets: ["neuvector-svc-prometheus-exporter.neuvector:8068"]
