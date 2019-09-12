@@ -60,7 +60,7 @@ class apiCollector(object):
                 retry += 1
             else:
                 if response.status_code == 401:
-                    self._login(self._url, self._user, self._pass)
+                    _login(self._url, self._user, self._pass)
                     retry += 1
                 else:
                     return response
