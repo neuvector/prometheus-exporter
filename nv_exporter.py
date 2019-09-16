@@ -59,7 +59,7 @@ class apiCollector(object):
                 print(e)
                 retry += 1
             else:
-                if response.status_code == 401 || response.status_code == 408:
+                if response.status_code == 401 or response.status_code == 408:
                     _login(self._url, self._user, self._pass)
                     retry += 1
                 else:
