@@ -78,5 +78,5 @@ $ kubectl create -f prometheus.yml
 $ sudo docker run -d -p 3000:3000 --name grafana grafana/grafana
 ```
 - After deployed Grafana, open browser and go to: [grafana_host:3000] (example: localhost:3000)
-- Login and add Prometheus source, find the `+` on the left bar, select `Import`
-- Upload NeuVector dashboard templet JSON file.
+- Login and add Prometheus data source from Configurations -> Data Sources
+- find the `+` on the left bar, select `Import`. Upload NeuVector dashboard templet JSON file.

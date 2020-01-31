@@ -219,48 +219,44 @@ class apiCollector(object):
             metric = Metric('nv_image_vulnerability',
                             'image vulnerability of ' + ep, 'gauge')
             for c in json.loads(response.text)['summarys']:
-                response2 = self.get('/v1/scan/registry' + c['name'] + '/images')
+                response2 = self.get('/v1/scan/registry/' + c['name'] + '/images')
                 if response2:
-                    for i in json.loads(response2.text)['images']:
+                    for img in json.loads(response2.text)['images']:
                         metric.add_sample('nv_image_vulnerabilityHigh',
-                                          value=i['high'],
+                                          value=img['high'],
                                           labels={
-                                              'name': c['name'],
-                                              'imageid': i['image_id'],
+                                              'name': "%s:%s" % (img['repository'], img['tag']),
+                                              'imageid': img['image_id'],
                                               'target': ep
                                           })
                         metric.add_sample('nv_image_vulnerabilityMedium',
-                                          value=i['medium'],
+                                          value=img['medium'],
                                           labels={
-                                              'name': c['name'],
-                                              'imageid': i['image_id'],
+                                              'name': "%s:%s" % (img['repository'], img['tag']),
+                                              'imageid': img['image_id'],
                                               'target': ep
                                           })
             yield metric
 
         # Get container vulnerability
-        response = self.get('/v1/scan/workload')
+        response = self.get('/v1/workload?brief=true')
         if response:
             # Set vulnerability metrics
             cvlist = []
             metric = Metric('nv_container_vulnerability',
                             'container vulnerability of ' + ep, 'gauge')
             for c in json.loads(response.text)['workloads']:
-                if c['service'] not in cvlist and c[
-                        'service_mesh_sidecar'] is False and c[
-                            'high'] != 0 and c['medium'] != 0:
-                    if (
-                            "-pod-" not in c['service']
-                            and "default" not in c['service']
-                    ) or "-pod-00" in c['service'] or "-v1" in c['service']:
+                if c['service'] not in cvlist and c['service_mesh_sidecar'] is False:
+                    scan = c['scan_summary']
+                    if scan != None and (scan['high'] != 0 or scan['medium'] != 0):
                         metric.add_sample('nv_container_vulnerabilityHigh',
-                                          value=c['high'],
+                                          value=scan['high'],
                                           labels={
                                               'service': c['service'],
                                               'target': ep
                                           })
                         metric.add_sample('nv_container_vulnerabilityMedium',
-                                          value=c['medium'],
+                                          value=scan['medium'],
                                           labels={
                                               'service': c['service'],
                                               'target': ep
@@ -306,13 +302,7 @@ class apiCollector(object):
             iwnamelist = []
             iidlist = []
             for c in json.loads(response.text)['incidents']:
-                try:
-                    c['workload_name']
-                except KeyError:
-                    workload_exists = False
-                else:
-                    workload_exists = True
-                if workload_exists is True:
+                if 'workload_name' in c:
                     itimelist.append(c['reported_timestamp'])
                     inamelist.append(c['name'])
                     iwnamelist.append(c['workload_name'])
@@ -341,7 +331,7 @@ class apiCollector(object):
             for c in json.loads(response.text)['violations']:
                 vtimelist.append(c['reported_timestamp'])
                 vcnamelist.append(c['client_name'])
-                vnamelist.append(c['cluster_name'])
+                vnamelist.append(c['name'])
                 vsnamelist.append(c['server_name'])
                 vidlist.append(c['client_id'] + c['server_id'])
             for x in range(0, min(5, len(vidlist))):
