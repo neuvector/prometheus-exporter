@@ -331,7 +331,7 @@ class apiCollector(object):
             for c in json.loads(response.text)['violations']:
                 vtimelist.append(c['reported_timestamp'])
                 vcnamelist.append(c['client_name'])
-                vnamelist.append("")
+                vnamelist.append("Network Violation")
                 vsnamelist.append(c['server_name'])
                 vidlist.append(c['client_id'] + c['server_id'])
             for x in range(0, min(5, len(vidlist))):
