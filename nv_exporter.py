@@ -141,7 +141,7 @@ class apiCollector(object):
                     port_exists = True
                 if port_exists is True:
                     for k in c['ports']:
-                        if c['bytes'] is not 0:
+                        if c['bytes'] != 0:
                             metric.add_sample('nv_conversation_bytes',
                                               value=c['bytes'],
                                               labels={
@@ -273,13 +273,17 @@ class apiCollector(object):
             ttimelist = []
             tnamelist = []
             tcnamelist = []
+            tcnslist = []
             tsnamelist = []
+            tsnslist = []
             tidlist = []
             for c in json.loads(response.text)['threats']:
                 ttimelist.append(c['reported_timestamp'])
                 tnamelist.append(c['name'])
                 tcnamelist.append(c['client_workload_name'])
+                tcnslist.append(c['client_workload_domain'] if 'client_workload_domain' in c else "")
                 tsnamelist.append(c['server_workload_name'])
+                tsnslist.append(c['server_workload_domain'] if 'server_workload_domain' in c else "")
                 tidlist.append(c['id'])
             for x in range(0, min(5, len(tidlist))):
                 metric.add_sample('nv_log_events',
@@ -287,7 +291,9 @@ class apiCollector(object):
                                   labels={
                                       'log': "thread",
                                       'fromname': tcnamelist[x],
-                                      'toname': " -> " + tsnamelist[x],
+                                      'fromns': tcnslist[x],
+                                      'toname': tsnamelist[x],
+                                      'tons': tsnamelist[x],
                                       'id': tidlist[x],
                                       'name': tnamelist[x],
                                       'target': ep
@@ -300,12 +306,14 @@ class apiCollector(object):
             itimelist = []
             inamelist = []
             iwnamelist = []
+            iwnslist = []
             iidlist = []
             for c in json.loads(response.text)['incidents']:
                 if 'workload_name' in c:
                     itimelist.append(c['reported_timestamp'])
                     inamelist.append(c['name'])
                     iwnamelist.append(c['workload_name'])
+                    iwnslist.append(c['workload_domain'] if 'workload_domain' in c else "")
                     iidlist.append(c['workload_id'])
             for x in range(0, min(5, len(iidlist))):
                 metric.add_sample('nv_log_events',
@@ -313,7 +321,9 @@ class apiCollector(object):
                                   labels={
                                       'log': "incident",
                                       'fromname': iwnamelist[x],
+                                      'fromns': iwnslist[x],
                                       'toname': " ",
+                                      'tons': " ",
                                       'name': inamelist[x],
                                       'id': iidlist[x],
                                       'target': ep
@@ -326,13 +336,17 @@ class apiCollector(object):
             vtimelist = []
             vnamelist = []
             vcnamelist = []
+            vcnslist = []
             vsnamelist = []
+            vsnslist = []
             vidlist = []
             for c in json.loads(response.text)['violations']:
                 vtimelist.append(c['reported_timestamp'])
                 vcnamelist.append(c['client_name'])
+                vcnslist.append(c['client_domain'] if 'client_domain' in c else "")
                 vnamelist.append("Network Violation")
                 vsnamelist.append(c['server_name'])
+                vsnslist.append(c['server_domain'] if 'server_domain' in c else "")
                 vidlist.append(c['client_id'] + c['server_id'])
             for x in range(0, min(5, len(vidlist))):
                 metric.add_sample('nv_log_events',
@@ -340,8 +354,10 @@ class apiCollector(object):
                                   labels={
                                       'log': "violation",
                                       'id': vidlist[x],
-                                      'toname': " -> " + vsnamelist[x],
                                       'fromname': vcnamelist[x],
+                                      'fromns': vcnslist[x],
+                                      'toname': vsnamelist[x],
+                                      'tons': vsnslist[x],
                                       'name': vnamelist[x],
                                       'target': ep
                                   })

@@ -1340,7 +1340,7 @@
           "format": "time_series",
           "instant": false,
           "intervalFactor": 2,
-          "legendFormat": "<font color=\"red\">{{name}}</font><br/>{{fromname}}<br/>{{toname}}",
+          "legendFormat": "<font color=\"red\">{{name}}</font><br/>{{fromname}}<br/>-> {{toname}}",
           "refId": "A"
         }
       ],
