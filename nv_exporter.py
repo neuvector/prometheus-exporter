@@ -39,10 +39,11 @@ def _login(ctrl_url, ctrl_user, ctrl_pass):
     return 0
 
 class apiCollector(object):
-    def __init__(self, endpoint, ctrl_user, ctrl_pass):
+    def __init__(self, endpoint, ctrl_user, ctrl_pass, collect_metrics):
         self._endpoint = endpoint
         self._user = ctrl_user
         self._pass = ctrl_pass
+        self._metrics = set(collect_metrics)
         self._url = "https://" + endpoint
 
     def sigterm_handler(self, _signo, _stack_frame):
@@ -72,302 +73,311 @@ class apiCollector(object):
         ep = eps[0]
 
         # Get system summary
-        response = self.get('/v1/system/summary')
-        if response:
-            sjson = json.loads(response.text)
-            # Set summary metrics
-            metric = Metric('nv_summary', 'A summary of ' + ep, 'summary')
-            metric.add_sample('nv_summary_services',
-                              value=sjson["summary"]["services"],
-                              labels={'target': ep})
-            metric.add_sample('nv_summary_policy',
-                              value=sjson["summary"]["policy_rules"],
-                              labels={'target': ep})
-            metric.add_sample('nv_summary_runningWorkloads',
-                              value=sjson["summary"]["running_workloads"],
-                              labels={'target': ep})
-            metric.add_sample('nv_summary_totalWorkloads',
-                              value=sjson["summary"]["workloads"],
-                              labels={'target': ep})
-            metric.add_sample('nv_summary_hosts',
-                              value=sjson["summary"]["hosts"],
-                              labels={'target': ep})
-            metric.add_sample('nv_summary_controllers',
-                              value=sjson["summary"]["controllers"],
-                              labels={'target': ep})
-            metric.add_sample('nv_summary_enforcers',
-                              value=sjson["summary"]["enforcers"],
-                              labels={'target': ep})
-            metric.add_sample('nv_summary_pods',
-                              value=sjson["summary"]["running_pods"],
-                              labels={'target': ep})
-            metric.add_sample('nv_summary_disconnectedEnforcers',
-                              value=sjson["summary"]["disconnected_enforcers"],
-                              labels={'target': ep})
-            dt = sjson["summary"]["cvedb_create_time"]
-            if not dt:
-                metric.add_sample('nv_summary_cvedbVersion',
-                                  value=1.0,
+        if "summary" in self._metrics:
+            response = self.get('/v1/system/summary')
+            if response:
+                sjson = json.loads(response.text)
+                # Set summary metrics
+                metric = Metric('nv_summary', 'A summary of ' + ep, 'summary')
+                metric.add_sample('nv_summary_services',
+                                  value=sjson["summary"]["services"],
                                   labels={'target': ep})
-            else:
-                metric.add_sample('nv_summary_cvedbVersion',
-                                  value=sjson["summary"]["cvedb_version"],
+                metric.add_sample('nv_summary_policy',
+                                  value=sjson["summary"]["policy_rules"],
                                   labels={'target': ep})
-            # Convert time, set CVEDB create time
-            dt = sjson["summary"]["cvedb_create_time"]
-            if not dt:
-                metric.add_sample('nv_summary_cvedbTime',
-                                  value=0,
+                metric.add_sample('nv_summary_runningWorkloads',
+                                  value=sjson["summary"]["running_workloads"],
                                   labels={'target': ep})
-            else:
-                ts = time.strptime(dt, '%Y-%m-%dT%H:%M:%SZ')
-                metric.add_sample('nv_summary_cvedbTime',
-                                  value=time.mktime(ts) * 1000,
+                metric.add_sample('nv_summary_totalWorkloads',
+                                  value=sjson["summary"]["workloads"],
                                   labels={'target': ep})
-            yield metric
-
-        # Get conversation
-        response = self.get('/v1/conversation')
-        if response:
-            # Set conversation metrics
-            metric = Metric('nv_conversation', 'conversation of ' + ep,
-                            'gauge')
-            for c in json.loads(response.text)['conversations']:
-                try:
-                    c['ports']
-                except KeyError:
-                    port_exists = False
+                metric.add_sample('nv_summary_hosts',
+                                  value=sjson["summary"]["hosts"],
+                                  labels={'target': ep})
+                metric.add_sample('nv_summary_controllers',
+                                  value=sjson["summary"]["controllers"],
+                                  labels={'target': ep})
+                metric.add_sample('nv_summary_enforcers',
+                                  value=sjson["summary"]["enforcers"],
+                                  labels={'target': ep})
+                metric.add_sample('nv_summary_pods',
+                                  value=sjson["summary"]["running_pods"],
+                                  labels={'target': ep})
+                metric.add_sample('nv_summary_disconnectedEnforcers',
+                                  value=sjson["summary"]["disconnected_enforcers"],
+                                  labels={'target': ep})
+                dt = sjson["summary"]["cvedb_create_time"]
+                if not dt:
+                    metric.add_sample('nv_summary_cvedbVersion',
+                                      value=1.0,
+                                      labels={'target': ep})
                 else:
-                    port_exists = True
-                if port_exists is True:
-                    for k in c['ports']:
-                        if c['bytes'] != 0:
-                            metric.add_sample('nv_conversation_bytes',
-                                              value=c['bytes'],
-                                              labels={
-                                                  'port': k,
-                                                  'from': c['from'],
-                                                  'to': c['to'],
-                                                  'target': ep
-                                              })
-            yield metric
-
-        # Get enforcer
-        response = self.get('/v1/enforcer')
-        if response:
-            # Read each enforcer, set enforcer metrics
-            metric = Metric('nv_enforcer', 'enforcers of ' + ep, 'gauge')
-            for c in json.loads(response.text)['enforcers']:
-                response2 = self.get('/v1/enforcer/' + c['id'] + '/stats')
-                if response2:
-                    ejson = json.loads(response2.text)
-                    metric.add_sample('nv_enforcer_cpu',
-                                      value=ejson['stats']['span_1']['cpu'],
-                                      labels={
-                                          'id': c['id'],
-                                          'host': c['host_name'],
-                                          'display': c['display_name'],
-                                          'target': ep
-                                      })
-                    metric.add_sample('nv_enforcer_memory',
-                                      value=ejson['stats']['span_1']['memory'],
-                                      labels={
-                                          'id': c['id'],
-                                          'host': c['host_name'],
-                                          'display': c['display_name'],
-                                          'target': ep
-                                      })
-            yield metric
-
-        # Get host
-        response = self.get('/v1/host')
-        if response:
-            # Set host metrics
-            metric = Metric('nv_host', 'host information of ' + ep, 'gauge')
-            for c in json.loads(response.text)['hosts']:
-                metric.add_sample('nv_host_memory',
-                                  value=c['memory'],
-                                  labels={
-                                      'name': c['name'],
-                                      'id': c['id'],
-                                      'target': ep
-                                  })
-            yield metric
-
-        # Get debug admission stats
-        response = self.get('/v1/debug/admission_stats')
-        if response:
-            if response.status_code != 200:
-                print("Admission control stats request failed: %s" % response)
-            else:
-                djson = json.loads(response.text)
-                # Set admission metrics
-                metric = Metric('nv_admission', 'Debug admission stats of ' + ep,
-                                'gauge')
-                metric.add_sample('nv_admission_allowed',
-                                  value=djson['stats']['k8s_allowed_requests'],
-                                  labels={'target': ep})
-                metric.add_sample('nv_admission_denied',
-                                  value=djson['stats']['k8s_denied_requests'],
-                                  labels={'target': ep})
+                    metric.add_sample('nv_summary_cvedbVersion',
+                                      value=sjson["summary"]["cvedb_version"],
+                                      labels={'target': ep})
+                # Convert time, set CVEDB create time
+                dt = sjson["summary"]["cvedb_create_time"]
+                if not dt:
+                    metric.add_sample('nv_summary_cvedbTime',
+                                      value=0,
+                                      labels={'target': ep})
+                else:
+                    ts = time.strptime(dt, '%Y-%m-%dT%H:%M:%SZ')
+                    metric.add_sample('nv_summary_cvedbTime',
+                                      value=time.mktime(ts) * 1000,
+                                      labels={'target': ep})
                 yield metric
 
+        # Get conversation
+        if "conversation" in self._metrics:
+            response = self.get('/v1/conversation')
+            if response:
+                # Set conversation metrics
+                metric = Metric('nv_conversation', 'conversation of ' + ep,
+                                'gauge')
+                for c in json.loads(response.text)['conversations']:
+                    try:
+                        c['ports']
+                    except KeyError:
+                        port_exists = False
+                    else:
+                        port_exists = True
+                    if port_exists is True:
+                        for k in c['ports']:
+                            if c['bytes'] != 0:
+                                metric.add_sample('nv_conversation_bytes',
+                                                  value=c['bytes'],
+                                                  labels={
+                                                      'port': k,
+                                                      'from': c['from'],
+                                                      'to': c['to'],
+                                                      'target': ep
+                                                  })
+                yield metric
+
+        # Get enforcer
+        if "enforcer" in self._metrics:
+            response = self.get('/v1/enforcer')
+            if response:
+                # Read each enforcer, set enforcer metrics
+                metric = Metric('nv_enforcer', 'enforcers of ' + ep, 'gauge')
+                for c in json.loads(response.text)['enforcers']:
+                    response2 = self.get('/v1/enforcer/' + c['id'] + '/stats')
+                    if response2:
+                        ejson = json.loads(response2.text)
+                        metric.add_sample('nv_enforcer_cpu',
+                                          value=ejson['stats']['span_1']['cpu'],
+                                          labels={
+                                              'id': c['id'],
+                                              'host': c['host_name'],
+                                              'display': c['display_name'],
+                                              'target': ep
+                                          })
+                        metric.add_sample('nv_enforcer_memory',
+                                          value=ejson['stats']['span_1']['memory'],
+                                          labels={
+                                              'id': c['id'],
+                                              'host': c['host_name'],
+                                              'display': c['display_name'],
+                                              'target': ep
+                                          })
+                yield metric
+
+        # Get host
+        if "host" in self._metrics:
+            response = self.get('/v1/host')
+            if response:
+                # Set host metrics
+                metric = Metric('nv_host', 'host information of ' + ep, 'gauge')
+                for c in json.loads(response.text)['hosts']:
+                    metric.add_sample('nv_host_memory',
+                                      value=c['memory'],
+                                      labels={
+                                          'name': c['name'],
+                                          'id': c['id'],
+                                          'target': ep
+                                      })
+                yield metric
+
+        # Get debug admission stats
+        if "admission" in self._metrics:
+            response = self.get('/v1/debug/admission_stats')
+            if response:
+                if response.status_code != 200:
+                    print("Admission control stats request failed: %s" % response)
+                else:
+                    djson = json.loads(response.text)
+                    # Set admission metrics
+                    metric = Metric('nv_admission', 'Debug admission stats of ' + ep,
+                                    'gauge')
+                    metric.add_sample('nv_admission_allowed',
+                                      value=djson['stats']['k8s_allowed_requests'],
+                                      labels={'target': ep})
+                    metric.add_sample('nv_admission_denied',
+                                      value=djson['stats']['k8s_denied_requests'],
+                                      labels={'target': ep})
+                    yield metric
+
         # Get image vulnerability
-        response = self.get('/v1/scan/registry')
-        if response:
-            # Set vulnerability metrics
-            metric = Metric('nv_image_vulnerability',
-                            'image vulnerability of ' + ep, 'gauge')
-            for c in json.loads(response.text)['summarys']:
-                response2 = self.get('/v1/scan/registry/' + c['name'] + '/images')
-                if response2:
-                    for img in json.loads(response2.text)['images']:
-                        metric.add_sample('nv_image_vulnerabilityHigh',
-                                          value=img['high'],
-                                          labels={
-                                              'name': "%s:%s" % (img['repository'], img['tag']),
-                                              'imageid': img['image_id'],
-                                              'target': ep
-                                          })
-                        metric.add_sample('nv_image_vulnerabilityMedium',
-                                          value=img['medium'],
-                                          labels={
-                                              'name': "%s:%s" % (img['repository'], img['tag']),
-                                              'imageid': img['image_id'],
-                                              'target': ep
-                                          })
-            yield metric
+        if "image_vulnerability" in self._metrics:
+            response = self.get('/v1/scan/registry')
+            if response:
+                # Set vulnerability metrics
+                metric = Metric('nv_image_vulnerability',
+                                'image vulnerability of ' + ep, 'gauge')
+                for c in json.loads(response.text)['summarys']:
+                    response2 = self.get('/v1/scan/registry/' + c['name'] + '/images')
+                    if response2:
+                        for img in json.loads(response2.text)['images']:
+                            metric.add_sample('nv_image_vulnerabilityHigh',
+                                              value=img['high'],
+                                              labels={
+                                                  'name': "%s:%s" % (img['repository'], img['tag']),
+                                                  'imageid': img['image_id'],
+                                                  'target': ep
+                                              })
+                            metric.add_sample('nv_image_vulnerabilityMedium',
+                                              value=img['medium'],
+                                              labels={
+                                                  'name': "%s:%s" % (img['repository'], img['tag']),
+                                                  'imageid': img['image_id'],
+                                                  'target': ep
+                                              })
+                yield metric
 
         # Get container vulnerability
-        response = self.get('/v1/workload?brief=true')
-        if response:
-            # Set vulnerability metrics
-            cvlist = []
-            metric = Metric('nv_container_vulnerability',
-                            'container vulnerability of ' + ep, 'gauge')
-            for c in json.loads(response.text)['workloads']:
-                if c['service'] not in cvlist and c['service_mesh_sidecar'] is False:
-                    scan = c['scan_summary']
-                    if scan != None and (scan['high'] != 0 or scan['medium'] != 0):
-                        metric.add_sample('nv_container_vulnerabilityHigh',
-                                          value=scan['high'],
-                                          labels={
-                                              'service': c['service'],
-                                              'target': ep
-                                          })
-                        metric.add_sample('nv_container_vulnerabilityMedium',
-                                          value=scan['medium'],
-                                          labels={
-                                              'service': c['service'],
-                                              'target': ep
-                                          })
-                        cvlist.append(c['service'])
-            yield metric
+        if "container_vulnerability" in self._metrics:
+            response = self.get('/v1/workload?brief=true')
+            if response:
+                # Set vulnerability metrics
+                cvlist = []
+                metric = Metric('nv_container_vulnerability',
+                                'container vulnerability of ' + ep, 'gauge')
+                for c in json.loads(response.text)['workloads']:
+                    if c['service'] not in cvlist and c['service_mesh_sidecar'] is False:
+                        scan = c['scan_summary']
+                        if scan != None and (scan['high'] != 0 or scan['medium'] != 0):
+                            metric.add_sample('nv_container_vulnerabilityHigh',
+                                              value=scan['high'],
+                                              labels={
+                                                  'service': c['service'],
+                                                  'target': ep
+                                              })
+                            metric.add_sample('nv_container_vulnerabilityMedium',
+                                              value=scan['medium'],
+                                              labels={
+                                                  'service': c['service'],
+                                                  'target': ep
+                                              })
+                            cvlist.append(c['service'])
+                yield metric
 
         # Set Log metrics
-        metric = Metric('nv_log', 'log of ' + ep, 'gauge')
-        # Get log threat
-        response = self.get('/v1/log/threat')
-        if response:
-            # Set threat
-            ttimelist = []
-            tnamelist = []
-            tcnamelist = []
-            tcnslist = []
-            tsnamelist = []
-            tsnslist = []
-            tidlist = []
-            for c in json.loads(response.text)['threats']:
-                ttimelist.append(c['reported_timestamp'])
-                tnamelist.append(c['name'])
-                tcnamelist.append(c['client_workload_name'])
-                tcnslist.append(c['client_workload_domain'] if 'client_workload_domain' in c else "")
-                tsnamelist.append(c['server_workload_name'])
-                tsnslist.append(c['server_workload_domain'] if 'server_workload_domain' in c else "")
-                tidlist.append(c['id'])
-            for x in range(0, min(5, len(tidlist))):
-                metric.add_sample('nv_log_events',
-                                  value=ttimelist[x] * 1000,
-                                  labels={
-                                      'log': "thread",
-                                      'fromname': tcnamelist[x],
-                                      'fromns': tcnslist[x],
-                                      'toname': tsnamelist[x],
-                                      'tons': tsnamelist[x],
-                                      'id': tidlist[x],
-                                      'name': tnamelist[x],
-                                      'target': ep
-                                  })
+        if "log" in self._metrics:
+            metric = Metric('nv_log', 'log of ' + ep, 'gauge')
+            # Get log threat
+            response = self.get('/v1/log/threat')
+            if response:
+                # Set threat
+                ttimelist = []
+                tnamelist = []
+                tcnamelist = []
+                tcnslist = []
+                tsnamelist = []
+                tsnslist = []
+                tidlist = []
+                for c in json.loads(response.text)['threats']:
+                    ttimelist.append(c['reported_timestamp'])
+                    tnamelist.append(c['name'])
+                    tcnamelist.append(c['client_workload_name'])
+                    tcnslist.append(c['client_workload_domain'] if 'client_workload_domain' in c else "")
+                    tsnamelist.append(c['server_workload_name'])
+                    tsnslist.append(c['server_workload_domain'] if 'server_workload_domain' in c else "")
+                    tidlist.append(c['id'])
+                for x in range(0, min(5, len(tidlist))):
+                    metric.add_sample('nv_log_events',
+                                      value=ttimelist[x] * 1000,
+                                      labels={
+                                          'log': "thread",
+                                          'fromname': tcnamelist[x],
+                                          'fromns': tcnslist[x],
+                                          'toname': tsnamelist[x],
+                                          'tons': tsnamelist[x],
+                                          'id': tidlist[x],
+                                          'name': tnamelist[x],
+                                          'target': ep
+                                      })
 
-        # Get log incident
-        response = self.get('/v1/log/incident')
-        if response:
-            # Set incident metrics
-            itimelist = []
-            inamelist = []
-            iwnamelist = []
-            iwnslist = []
-            iidlist = []
-            for c in json.loads(response.text)['incidents']:
-                if 'workload_name' in c:
-                    itimelist.append(c['reported_timestamp'])
-                    inamelist.append(c['name'])
-                    iwnamelist.append(c['workload_name'])
-                    iwnslist.append(c['workload_domain'] if 'workload_domain' in c else "")
-                    iidlist.append(c['workload_id'])
-            for x in range(0, min(5, len(iidlist))):
-                metric.add_sample('nv_log_events',
-                                  value=itimelist[x] * 1000,
-                                  labels={
-                                      'log': "incident",
-                                      'fromname': iwnamelist[x],
-                                      'fromns': iwnslist[x],
-                                      'toname': " ",
-                                      'tons': " ",
-                                      'name': inamelist[x],
-                                      'id': iidlist[x],
-                                      'target': ep
-                                  })
+            # Get log incident
+            response = self.get('/v1/log/incident')
+            if response:
+                # Set incident metrics
+                itimelist = []
+                inamelist = []
+                iwnamelist = []
+                iwnslist = []
+                iidlist = []
+                for c in json.loads(response.text)['incidents']:
+                    if 'workload_name' in c:
+                        itimelist.append(c['reported_timestamp'])
+                        inamelist.append(c['name'])
+                        iwnamelist.append(c['workload_name'])
+                        iwnslist.append(c['workload_domain'] if 'workload_domain' in c else "")
+                        iidlist.append(c['workload_id'])
+                for x in range(0, min(5, len(iidlist))):
+                    metric.add_sample('nv_log_events',
+                                      value=itimelist[x] * 1000,
+                                      labels={
+                                          'log': "incident",
+                                          'fromname': iwnamelist[x],
+                                          'fromns': iwnslist[x],
+                                          'toname': " ",
+                                          'tons': " ",
+                                          'name': inamelist[x],
+                                          'id': iidlist[x],
+                                          'target': ep
+                                      })
 
-        # Get log violation
-        response = self.get('/v1/log/violation')
-        if response:
-            # Set violation metrics
-            vtimelist = []
-            vnamelist = []
-            vcnamelist = []
-            vcnslist = []
-            vsnamelist = []
-            vsnslist = []
-            vidlist = []
-            for c in json.loads(response.text)['violations']:
-                vtimelist.append(c['reported_timestamp'])
-                vcnamelist.append(c['client_name'])
-                vcnslist.append(c['client_domain'] if 'client_domain' in c else "")
-                vnamelist.append("Network Violation")
-                vsnamelist.append(c['server_name'])
-                vsnslist.append(c['server_domain'] if 'server_domain' in c else "")
-                vidlist.append(c['client_id'] + c['server_id'])
-            for x in range(0, min(5, len(vidlist))):
-                metric.add_sample('nv_log_events',
-                                  value=vtimelist[x] * 1000,
-                                  labels={
-                                      'log': "violation",
-                                      'id': vidlist[x],
-                                      'fromname': vcnamelist[x],
-                                      'fromns': vcnslist[x],
-                                      'toname': vsnamelist[x],
-                                      'tons': vsnslist[x],
-                                      'name': vnamelist[x],
-                                      'target': ep
-                                  })
-            yield metric
+            # Get log violation
+            response = self.get('/v1/log/violation')
+            if response:
+                # Set violation metrics
+                vtimelist = []
+                vnamelist = []
+                vcnamelist = []
+                vcnslist = []
+                vsnamelist = []
+                vsnslist = []
+                vidlist = []
+                for c in json.loads(response.text)['violations']:
+                    vtimelist.append(c['reported_timestamp'])
+                    vcnamelist.append(c['client_name'])
+                    vcnslist.append(c['client_domain'] if 'client_domain' in c else "")
+                    vnamelist.append("Network Violation")
+                    vsnamelist.append(c['server_name'])
+                    vsnslist.append(c['server_domain'] if 'server_domain' in c else "")
+                    vidlist.append(c['client_id'] + c['server_id'])
+                for x in range(0, min(5, len(vidlist))):
+                    metric.add_sample('nv_log_events',
+                                      value=vtimelist[x] * 1000,
+                                      labels={
+                                          'log': "violation",
+                                          'id': vidlist[x],
+                                          'fromname': vcnamelist[x],
+                                          'fromns': vcnslist[x],
+                                          'toname': vsnamelist[x],
+                                          'tons': vsnslist[x],
+                                          'name': vnamelist[x],
+                                          'target': ep
+                                      })
+                yield metric
 
 
 ENV_CTRL_API_SVC = "CTRL_API_SERVICE"
 ENV_CTRL_USERNAME = "CTRL_USERNAME"
 ENV_CTRL_PASSWORD = "CTRL_PASSWORD"
 ENV_EXPORTER_PORT = "EXPORTER_PORT"
+ENV_EXPORTER_METRICS = "EXPORTER_METRICS"
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='NeuVector command line.')
@@ -384,6 +394,8 @@ if __name__ == '__main__':
                         "--password",
                         type=str,
                         help="controller user password")
+    parser.add_argument("--collect-metrics",
+                        help="comma-separated list of metrics to collect")
     argss = parser.parse_args()
 
     if argss.server:
@@ -414,6 +426,15 @@ if __name__ == '__main__':
     else:
         ctrl_pass = "admin"
 
+    if argss.collect_metrics:
+        collect_metrics_str = argss.collect_metrics
+    elif ENV_EXPORTER_METRICS in os.environ:
+        collect_metrics_str = os.environ.get(ENV_EXPORTER_METRICS)
+    else:
+        collect_metrics_str = "summary,conversation,enforcer,host,admission,image_vulnerability,container_vulnerability,log"
+
+    collect_metrics = collect_metrics_str.split(",")
+
     # Login and get token
     if _login("https://" + ctrl_svc, ctrl_user, ctrl_pass) < 0:
         sys.exit(1)
@@ -422,7 +443,7 @@ if __name__ == '__main__':
     start_http_server(port)
 
     print("Register collector ...")
-    collector = apiCollector(ctrl_svc, ctrl_user, ctrl_pass)
+    collector = apiCollector(ctrl_svc, ctrl_user, ctrl_pass, collect_metrics)
     REGISTRY.register(collector)
     signal.signal(signal.SIGTERM, collector.sigterm_handler)
 
