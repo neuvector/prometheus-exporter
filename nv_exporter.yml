@@ -1,3 +1,27 @@
+# Use config map for not-secret configuration data
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nv-exporter-cm
+data:
+  CTRL_API_SERVICE: neuvector-svc-controller.neuvector:10443
+  EXPORTER_PORT: "8068"
+  
+---
+# Use secrets for things which are actually secret like API keys, credentials, etc
+# Base64 encode the values stored in a Kubernetes Secret: $ pbpaste | base64 | pbcopy
+# The --decode flag is convenient: $ pbpaste | base64 --decode
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: nv-exporter-secret
+type: Opaque
+data:
+  CTRL_USERNAME: YWRtaW4gCg==
+  CTRL_PASSWORD: YWRtaW4gCg==
+  
+---
 apiVersion: v1
 kind: Service
 metadata:
@@ -29,13 +53,18 @@ spec:
         - name: neuvector-prometheus-exporter-pod
           image: neuvector/prometheus-exporter
           imagePullPolicy: Always
-          env:
-            - name: CTRL_API_SERVICE
-              value: neuvector-svc-controller.neuvector:10443
-            - name: CTRL_USERNAME
-              value: admin
-            - name: CTRL_PASSWORD
-              value: admin
-            - name: EXPORTER_PORT
-              value: "8068"
+          envFrom:
+          - configMapRef:
+              name: nv-exporter-cm
+          - secretRef:
+              name: nv-exporter-secret
+          #env:
+          #  - name: CTRL_API_SERVICE
+          #    value: neuvector-svc-controller.neuvector:10443
+          #  - name: CTRL_USERNAME
+          #    value: admin
+          #  - name: CTRL_PASSWORD
+          #    value: admin
+          #  - name: EXPORTER_PORT
+          #    value: "8068"
       restartPolicy: Always
