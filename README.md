@@ -21,7 +21,17 @@ $ sudo pip3 install prometheus_client requests
 #### To run the exporter and prometheus as a container
 It's easier to start NeuVector exporter as a container. The following section describe how to start the exporter in the Docker environment. A kubernetes sample yaml file, nv_exporter.yml, is also included.
 
-Modify both docker-compose.yml and nv_exporter.yml. Specify NeuVector controller's RESTful API endpoint `CTRL_API_SERVICE`, login username `CTRL_USERNAME`, password `CTRL_PASSWORD`, and the port that the export listens on through environment variables `EXPORTER_PORT`. **It's highly recommanded to create a read-only user account for the exporter.**
+Modify both docker-compose.yml and nv_exporter.yml. Specify NeuVector controller's RESTful API endpoint `CTRL_API_SERVICE`, login username `CTRL_USERNAME`, password `CTRL_PASSWORD`, and the port that the export listens on through environment variables `EXPORTER_PORT`. Optionally, you can also specify `EXPORTER_METRICS` to a comma-separated list of metric groups to collect and export. **It's highly recommanded to create a read-only user account for the exporter.**
+
+Metric groups:
+- `summary` - overall NeuVector status
+- `conversation` - total bytes for every conversation between workloads
+- `enforcer` - enforcer CPU and memory usage
+- `host` - host memory usage
+- `admission` - number of allowed and denied Kubernetes admission requests
+- `image_vulnerability` - number of high and medium vulnerabilities for every scanned registry image
+- `container_vulnerability` - number of high and medium vulnerabilities for every service, reporting a single pod's status per service (excluding service mesh sidecars)
+- `log` - data for the latest threat, incident, and violation logs (latest 5 logs each)
 
 
 ##### In native docker environment
