@@ -15,12 +15,12 @@ session = requests.Session()
 
 def _login(ctrl_url, ctrl_user, ctrl_pass):
     print("Login to controller ...")
-    data = '{"password": {"username": "' + ctrl_user + '", "password": "' + ctrl_pass + '"}}'
+    body = {"password": {"username": ctrl_user, "password": ctrl_pass}}
     headers = {'Content-Type': 'application/json'}
     try:
         response = requests.post(ctrl_url + '/v1/auth',
                                  headers=headers,
-                                 data=data,
+                                 data=json.dumps(body),
                                  verify=False)
     except requests.exceptions.RequestException as e:
         print(e)
