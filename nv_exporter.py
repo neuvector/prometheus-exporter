@@ -179,6 +179,34 @@ class apiCollector(object):
                                       })
             yield metric
 
+        # Get controller
+        response = self.get('/v1/controller')
+        if response:
+            # Read each controller, set controller metrics
+            metric = Metric('nv_controller', 'controllers of ' + ep, 'gauge')
+            for c in json.loads(response.text)['controllers']:
+                response2 = self.get('/v1/controller/' + c['id'] + '/stats')
+                if response2:
+                    ejson = json.loads(response2.text)
+                    metric.add_sample('nv_controller_cpu',
+                                      value=ejson['stats']['span_1']['cpu'],
+                                      labels={
+                                          'id': c['id'],
+                                          'host': c['host_name'],
+                                          'display': c['display_name'],
+                                          'target': ep
+                                      })
+                    metric.add_sample('nv_controller_memory',
+                                      value=ejson['stats']['span_1']['memory'],
+                                      labels={
+                                          'id': c['id'],
+                                          'host': c['host_name'],
+                                          'display': c['display_name'],
+                                          'target': ep
+                                      })
+            yield metric
+
+
         # Get host
         response = self.get('/v1/host')
         if response:
