@@ -90,3 +90,34 @@ $ sudo docker run -d -p 3000:3000 --name grafana grafana/grafana
 - After deployed Grafana, open browser and go to: [grafana_host:3000] (example: localhost:3000)
 - Login and add Prometheus data source from Configurations -> Data Sources
 - find the `+` on the left bar, select `Import`. Upload NeuVector dashboard templet JSON file.
+
+
+### Metrics 
+| Metrics | Comment |
+| ------- | ---- |
+| nv_summary_services | Number of services |
+| nv_summary_policy | Number of network policies |
+| nv_summary_pods | Number of pods |
+| nv_summary_runningWorkloads | Number of running containers |
+| nv_summary_totalWorkloads | Total number of containers |
+| nv_summary_hosts | Number of hosts |
+| nv_summary_controllers | Number of controllers |
+| nv_summary_enforcers | Number of enforcers |
+| nv_summary_disconnectedEnforcers | Number of disconnected enforcers |
+| nv_summary_cvedbTime | Vulnerability database build time |
+| nv_summary_cvedbVersion | Vulnerability database version |
+| nv_host_memory | Memory usage of nodes (by node id) |
+| nv_controller_cpu | CPU usage of controllers (by controller id) |
+| nv_controller_memory | Memory usage of controllers (by controller id) |
+| nv_enforcer_cpu | CPU usage of enforcers (by enforcer id) |
+| nv_enforcer_memory | Memory usage of enforcers (by enforcer id) |
+| nv_conversation_bytes | Network bandwidth of applications |
+| nv_admission_allowed | Number of allowed admission control requests |
+| nv_admission_denied | Number of denied admission control requests |
+| nv_image_vulnerabilityHigh | Number of vulnerabilities of high severity (by image id) |
+| nv_image_vulnerabilityMedium | Number of vulnerabilities of medium severity (by image id) |
+| nv_container_vulnerabilityHigh | Number of vulnerabilities of high severity (by service name) |
+| nv_container_vulnerabilityMedium | Number of vulnerabilities of medium severity (by service name) |
+| nv_log_events | Lists of security events |
+
+
