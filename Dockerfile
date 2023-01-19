@@ -1,4 +1,4 @@
-FROM alpine:3.17.0
+FROM alpine:3.17.1
 MAINTAINER support@neuvector.com
 
 RUN apk add --no-cache python3 && \
