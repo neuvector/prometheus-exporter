@@ -12,6 +12,7 @@ import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 session = requests.Session()
+enable_enforcer_stats = False
 
 def _login(ctrl_url, ctrl_user, ctrl_pass):
     print("Login to controller ...")
@@ -153,31 +154,32 @@ class apiCollector(object):
             yield metric
 
         # Get enforcer
-        response = self.get('/v1/enforcer')
-        if response:
-            # Read each enforcer, set enforcer metrics
-            metric = Metric('nv_enforcer', 'enforcers of ' + ep, 'gauge')
-            for c in json.loads(response.text)['enforcers']:
-                response2 = self.get('/v1/enforcer/' + c['id'] + '/stats')
-                if response2:
-                    ejson = json.loads(response2.text)
-                    metric.add_sample('nv_enforcer_cpu',
-                                      value=ejson['stats']['span_1']['cpu'],
-                                      labels={
-                                          'id': c['id'],
-                                          'host': c['host_name'],
-                                          'display': c['display_name'],
-                                          'target': ep
-                                      })
-                    metric.add_sample('nv_enforcer_memory',
-                                      value=ejson['stats']['span_1']['memory'],
-                                      labels={
-                                          'id': c['id'],
-                                          'host': c['host_name'],
-                                          'display': c['display_name'],
-                                          'target': ep
-                                      })
-            yield metric
+        if enable_enforcer_stats:
+            response = self.get('/v1/enforcer')
+            if response:
+                # Read each enforcer, set enforcer metrics
+                metric = Metric('nv_enforcer', 'enforcers of ' + ep, 'gauge')
+                for c in json.loads(response.text)['enforcers']:
+                    response2 = self.get('/v1/enforcer/' + c['id'] + '/stats')
+                    if response2:
+                        ejson = json.loads(response2.text)
+                        metric.add_sample('nv_enforcer_cpu',
+                                          value=ejson['stats']['span_1']['cpu'],
+                                          labels={
+                                              'id': c['id'],
+                                              'host': c['host_name'],
+                                              'display': c['display_name'],
+                                              'target': ep
+                                          })
+                        metric.add_sample('nv_enforcer_memory',
+                                          value=ejson['stats']['span_1']['memory'],
+                                          labels={
+                                              'id': c['id'],
+                                              'host': c['host_name'],
+                                              'display': c['display_name'],
+                                              'target': ep
+                                          })
+                yield metric
 
         # Get controller
         response = self.get('/v1/controller')
@@ -396,6 +398,7 @@ ENV_CTRL_API_SVC = "CTRL_API_SERVICE"
 ENV_CTRL_USERNAME = "CTRL_USERNAME"
 ENV_CTRL_PASSWORD = "CTRL_PASSWORD"
 ENV_EXPORTER_PORT = "EXPORTER_PORT"
+ENV_ENFORCER_STATS = "ENFORCER_STATS"
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='NeuVector command line.')
@@ -441,6 +444,12 @@ if __name__ == '__main__':
         ctrl_pass = os.environ.get(ENV_CTRL_PASSWORD)
     else:
         ctrl_pass = "admin"
+
+    if ENV_ENFORCER_STATS in os.environ:
+        try:
+            enable_enforcer_stats = bool(os.environ.get(ENV_ENFORCER_STATS))
+        except:
+            enable_enforcer_stats = False
 
     # Login and get token
     if _login("https://" + ctrl_svc, ctrl_user, ctrl_pass) < 0:
