@@ -13,13 +13,16 @@ spec:
 
 ---
 
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: neuvector-prometheus-exporter-pod
   namespace: neuvector
 spec:
   replicas: 1
+  selector:
+    matchLabels:
+      app: neuvector-prometheus-exporter-pod
   template:
     metadata:
       labels:
@@ -27,7 +30,7 @@ spec:
     spec:
       containers:
         - name: neuvector-prometheus-exporter-pod
-          image: neuvector/prometheus-exporter
+          image: neuvector/prometheus-exporter:latest
           imagePullPolicy: Always
           env:
             - name: CTRL_API_SERVICE

@@ -34,6 +34,16 @@ Metric groups:
 - `log` - data for the latest threat, incident, and violation logs (latest 5 logs each)
 
 
+##### Environment Variables
+
+Variable | Description | Default 
+-------- | ----------- | -------
+`CTRL_API_SERVICE` | NeuVector controller REST API service endpoint | `nil` 
+`CTRL_USERNAME` | Username to login to controller REST API service | `admin`
+`CTRL_PASSWORD` | Password to login to controller REST API service | `admin`
+`EXPORTER_PORT` | The port that the export is listening on | `nil`
+`ENFORCER_STATS` | For the performance reason, by default the exporter does NOT pull CPU/memory usage from enforcers. Enable this if you want to see the metrix in the dashboard | `0`
+
 ##### In native docker environment
 
 Start NeuVector exporter container.
@@ -66,6 +76,7 @@ $ docker run -itd -p 9090:9090 -v $(pwd)/prometheus.yml:/etc/prometheus/promethe
 - On the top bar go to `Graph` and in the `Expression` box type `nv` to view all the metrics the exporter has.
 
 ##### In Kubernetes
+
 Start NeuVector exporter pod and service.
 ```
 $ kubectl create -f nv_exporter.yml

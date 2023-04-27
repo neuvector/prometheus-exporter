@@ -1,9 +1,13 @@
-apiVersion: extensions/v1beta1
 kind: Deployment
+apiVersion: apps/v1
 metadata:
   name: prometheus-deployment
+  namespace: default
 spec:
   replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus
   template:
     metadata:
       labels:
@@ -27,6 +31,7 @@ kind: Service
 apiVersion: v1
 metadata:
   name: prometheus-service
+  namespace: default
 spec:
   selector:
     app: prometheus
