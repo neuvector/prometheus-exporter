@@ -43,4 +43,6 @@ spec:
               value: "8068"
             # - name: EXPORTER_METRICS
             #   value: summary,conversation,enforcer,host,admission,image_vulnerability,container_vulnerability,log
+            # - name: ENFORCER_STATS
+            #   value: "true"
       restartPolicy: Always

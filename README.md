@@ -42,7 +42,7 @@ Variable | Description | Default
 `CTRL_USERNAME` | Username to login to controller REST API service | `admin`
 `CTRL_PASSWORD` | Password to login to controller REST API service | `admin`
 `EXPORTER_PORT` | The port that the export is listening on | `nil`
-`ENFORCER_STATS` | For the performance reason, by default the exporter does NOT pull CPU/memory usage from enforcers. Enable this if you want to see the metrix in the dashboard | `0`
+`ENFORCER_STATS` | For the performance reason, by default the exporter does NOT pull CPU/memory usage from enforcers. Enable this if you want to see the metrics in the dashboard | `0`
 
 ##### In native docker environment
 
