@@ -319,7 +319,7 @@ class apiCollector(object):
                 metric.add_sample('nv_log_events',
                                   value=ttimelist[x] * 1000,
                                   labels={
-                                      'log': "thread",
+                                      'log': "threat",
                                       'fromname': tcnamelist[x],
                                       'fromns': tcnslist[x],
                                       'toname': tsnamelist[x],
