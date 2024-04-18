@@ -3,6 +3,10 @@
 # pylint: disable=too-many-statements
 # pylint: disable=too-many-locals
 
+# This script uses the neuvector api to get information which can be used by
+# prometheus. It used the following library
+# https://prometheus.github.io/client_python/
+
 # ----------------------------------------
 # Imports
 # ----------------------------------------
@@ -479,6 +483,71 @@ class NVApiCollector:
                                       'target': ep
                                   })
             yield metric
+
+        # Get federated information
+        # Create nv_fed metric
+        metric = Metric('nv_fed', 'log of ' + ep, 'gauge')
+
+        # Get the api endpoint
+        response = self.get('/v1/fed/member')
+
+        # Check the respone
+        if response:
+
+            # Perform json load
+            sjson = json.loads(response.text)
+
+            # Check if the cluster is a federated master
+            if sjson['fed_role'] == "master":
+
+                # Set name of the master cluster
+                fed_master_name = sjson['master_cluster']['name']
+
+                # Loop through the list of nodes
+                for fed_worker in sjson['joint_clusters']:
+
+                    # Set status variable
+                    if fed_worker['status'] != "synced":
+
+                        # Set value to 0
+                        fed_worker_value = 0
+
+                    else:
+                        fed_worker_value = 1
+
+                    # Write the fed master metrics
+                    metric.add_sample('nv_fed_master',
+                                      value=fed_worker_value,
+                                      labels={
+                                          'master': fed_master_name,
+                                          'worker': fed_worker['name'],
+                                          'status': fed_worker['status']
+                                      })
+                yield metric
+
+            # Add worker metrics
+            else:
+
+                # Write the worker metrics
+                if sjson['fed_role'] != "joint":
+                    fed_joint_status = 0
+                else:
+                    fed_joint_status = 1
+
+                # Check if there is a master entry present
+                if 'master_cluster' in sjson:
+                    fed_master_cluster = sjson['master_cluster']['name']
+                else:
+                    fed_master_cluster = ""
+
+                # Write the metrics
+                metric.add_sample('nv_fed_worker',
+                                  value=fed_joint_status,
+                                  labels={
+                                      'status': sjson['fed_role'],
+                                      'master': fed_master_cluster
+                                  })
+                yield metric
 
 
 ENV_CTRL_API_SVC = "CTRL_API_SERVICE"
