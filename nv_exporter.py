@@ -268,6 +268,28 @@ class apiCollector(object):
                                           })
             yield metric
 
+        # Get platform vulnerability
+        response = self.get('/v1/scan/platform/')
+        if response:
+            # Set vulnerability metrics
+            metric = Metric('nv_platform_vulnerability',
+                            'platform vulnerability of ' + ep, 'gauge')
+            for platform in json.loads(response.text)['platforms']:
+                if (platform['high'] != 0 or platform['medium'] != 0):
+                    metric.add_sample('nv_platform_vulnerabilityHigh',
+                                    value=platform['high'],
+                                    labels={
+                                        'name': platform['platform'],
+                                        'target': ep
+                                    })
+                    metric.add_sample('nv_platform_vulnerabilityMedium',
+                                    value=platform['medium'],
+                                    labels={
+                                        'name': platform['platform'],
+                                        'target': ep
+                                    })
+            yield metric
+
         # Get container vulnerability
         response = self.get('/v1/workload?brief=true')
         if response:
