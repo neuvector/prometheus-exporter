@@ -1,20 +1,43 @@
-from datetime import datetime
-from prometheus_client import start_http_server, Metric, REGISTRY
+# pylint: disable=missing-module-docstring
+# pylint: disable=bare-except
+# pylint: disable=too-many-statements
+# pylint: disable=too-many-locals
+
+# This script uses the neuvector api to get information which can be used by
+# prometheus. It used the following library
+# https://prometheus.github.io/client_python/
+
+# ----------------------------------------
+# Imports
+# ----------------------------------------
 import argparse
 import json
 import os
-import requests
 import signal
 import sys
 import time
 import urllib3
+import requests
+from prometheus_client import start_http_server, Metric, REGISTRY
+
+# ----------------------------------------
+# Constants
+# ----------------------------------------
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-session = requests.Session()
-enable_enforcer_stats = False
+SESSION = requests.Session()
+ENABLE_ENFORCER_STATS = False
+
+# ----------------------------------------
+# Functions
+# ----------------------------------------
+
 
 def _login(ctrl_url, ctrl_user, ctrl_pass):
+    """
+    Login to the api and get a token
+    """
     print("Login to controller ...")
     body = {"password": {"username": ctrl_user, "password": ctrl_pass}}
     headers = {'Content-Type': 'application/json'}
@@ -23,8 +46,8 @@ def _login(ctrl_url, ctrl_user, ctrl_pass):
                                  headers=headers,
                                  data=json.dumps(body),
                                  verify=False)
-    except requests.exceptions.RequestException as e:
-        print(e)
+    except requests.exceptions.RequestException as login_error:
+        print(login_error)
         return -1
 
     if response.status_code != 200:
@@ -35,29 +58,48 @@ def _login(ctrl_url, ctrl_user, ctrl_pass):
     token = json.loads(response.text)["token"]["token"]
 
     # Update request session
-    session.headers.update({"Content-Type": "application/json"})
-    session.headers.update({'X-Auth-Token': token})
+    SESSION.headers.update({"Content-Type": "application/json"})
+    SESSION.headers.update({'X-Auth-Token': token})
     return 0
 
-class apiCollector(object):
+# ----------------------------------------
+# Classes
+# ----------------------------------------
+
+
+class NVApiCollector:
+    """
+    main api object
+    """
+
     def __init__(self, endpoint, ctrl_user, ctrl_pass):
+        """
+        Initialize the object
+        """
         self._endpoint = endpoint
         self._user = ctrl_user
         self._pass = ctrl_pass
         self._url = "https://" + endpoint
 
     def sigterm_handler(self, _signo, _stack_frame):
+        """
+        Logout when terminated
+        """
         print("Logout ...")
-        session.delete(self._url + '/v1/auth')
+        SESSION.delete(self._url + '/v1/auth')
         sys.exit(0)
 
     def get(self, path):
+        """
+        Function to perform the get operations
+        inside the class
+        """
         retry = 0
         while retry < 2:
             try:
-                response = session.get(self._url + path, verify=False)
-            except requests.exceptions.RequestException as e:
-                print(e)
+                response = SESSION.get(self._url + path, verify=False)
+            except requests.exceptions.RequestException as response_error:
+                print(response_error)
                 retry += 1
             else:
                 if response.status_code == 401 or response.status_code == 408:
@@ -69,6 +111,11 @@ class apiCollector(object):
         print("Failed to GET " + path)
 
     def collect(self):
+        """
+        Collect the required information
+        This method is called by the library, for more information
+        see https://prometheus.io/docs/instrumenting/writing_clientlibs/#overall-structure
+        """
         eps = self._endpoint.split(':')
         ep = eps[0]
 
@@ -154,7 +201,7 @@ class apiCollector(object):
             yield metric
 
         # Get enforcer
-        if enable_enforcer_stats:
+        if ENABLE_ENFORCER_STATS:
             response = self.get('/v1/enforcer')
             if response:
                 # Read each enforcer, set enforcer metrics
@@ -207,7 +254,6 @@ class apiCollector(object):
                                           'target': ep
                                       })
             yield metric
-
 
         # Get host
         response = self.get('/v1/host')
@@ -358,15 +404,54 @@ class apiCollector(object):
             itimelist = []
             inamelist = []
             iwnamelist = []
+            iclusterlist = []
             iwnslist = []
             iidlist = []
+            iproc_name_list = []
+            iproc_path_list = []
+            iproc_cmd_list = []
+            ifile_path_list = []
+            ifile_name_list = []
+
             for c in json.loads(response.text)['incidents']:
                 if 'workload_name' in c:
                     itimelist.append(c['reported_timestamp'])
                     inamelist.append(c['name'])
                     iwnamelist.append(c['workload_name'])
+                    iclusterlist.append(c['cluster_name'])
                     iwnslist.append(c['workload_domain'] if 'workload_domain' in c else "")
                     iidlist.append(c['workload_id'])
+
+                    # Check proc_name
+                    if 'proc_name' in c:
+                        iproc_name_list.append(c['proc_name'])
+                    else:
+                        iproc_name_list.append("")
+
+                    # Check proc_path
+                    if 'proc_path' in c:
+                        iproc_path_list.append(c['proc_path'])
+                    else:
+                        iproc_path_list.append("")
+
+                    # Check proc_cmd
+                    if 'proc_cmd' in c:
+                        iproc_cmd_list.append(c['proc_cmd'])
+                    else:
+                        iproc_cmd_list.append("")
+
+                    # Check file_path
+                    if 'file_path' in c:
+                        ifile_path_list.append(c['file_path'])
+                    else:
+                        ifile_path_list.append("")
+
+                    # Check file_name
+                    if 'file_name' in c:
+                        ifile_name_list.append(c['file_name'])
+                    else:
+                        ifile_name_list.append("")
+
             for x in range(0, min(5, len(iidlist))):
                 metric.add_sample('nv_log_events',
                                   value=itimelist[x] * 1000,
@@ -376,8 +461,14 @@ class apiCollector(object):
                                       'fromns': iwnslist[x],
                                       'toname': " ",
                                       'tons': " ",
+                                      'cluster': iclusterlist[x],
                                       'name': inamelist[x],
                                       'id': iidlist[x],
+                                      'procname': iproc_name_list[x],
+                                      'procpath': iproc_path_list[x],
+                                      'proccmd': iproc_cmd_list[x],
+                                      'filepath': ifile_path_list[x],
+                                      'filename': ifile_name_list[x],
                                       'target': ep
                                   })
 
@@ -415,6 +506,71 @@ class apiCollector(object):
                                   })
             yield metric
 
+        # Get federated information
+        # Create nv_fed metric
+        metric = Metric('nv_fed', 'log of ' + ep, 'gauge')
+
+        # Get the api endpoint
+        response = self.get('/v1/fed/member')
+
+        # Check the respone
+        if response:
+
+            # Perform json load
+            sjson = json.loads(response.text)
+
+            # Check if the cluster is a federated master
+            if sjson['fed_role'] == "master":
+
+                # Set name of the master cluster
+                fed_master_name = sjson['master_cluster']['name']
+
+                # Loop through the list of nodes
+                for fed_worker in sjson['joint_clusters']:
+
+                    # Set status variable
+                    if fed_worker['status'] != "synced":
+
+                        # Set value to 0
+                        fed_worker_value = 0
+
+                    else:
+                        fed_worker_value = 1
+
+                    # Write the fed master metrics
+                    metric.add_sample('nv_fed_master',
+                                      value=fed_worker_value,
+                                      labels={
+                                          'master': fed_master_name,
+                                          'worker': fed_worker['name'],
+                                          'status': fed_worker['status']
+                                      })
+                yield metric
+
+            # Add worker metrics
+            else:
+
+                # Write the worker metrics
+                if sjson['fed_role'] != "joint":
+                    fed_joint_status = 0
+                else:
+                    fed_joint_status = 1
+
+                # Check if there is a master entry present
+                if 'master_cluster' in sjson:
+                    fed_master_cluster = sjson['master_cluster']['name']
+                else:
+                    fed_master_cluster = ""
+
+                # Write the metrics
+                metric.add_sample('nv_fed_worker',
+                                  value=fed_joint_status,
+                                  labels={
+                                      'status': sjson['fed_role'],
+                                      'master': fed_master_cluster
+                                  })
+                yield metric
+
 
 ENV_CTRL_API_SVC = "CTRL_API_SERVICE"
 ENV_CTRL_USERNAME = "CTRL_USERNAME"
@@ -423,67 +579,67 @@ ENV_EXPORTER_PORT = "EXPORTER_PORT"
 ENV_ENFORCER_STATS = "ENFORCER_STATS"
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='NeuVector command line.')
-    parser.add_argument("-e", "--port", type=int, help="exporter port")
-    parser.add_argument("-s",
+    PARSER = argparse.ArgumentParser(description='NeuVector command line.')
+    PARSER.add_argument("-e", "--port", type=int, help="exporter port")
+    PARSER.add_argument("-s",
                         "--server",
                         type=str,
                         help="controller API service")
-    parser.add_argument("-u",
+    PARSER.add_argument("-u",
                         "--username",
                         type=str,
                         help="controller user name")
-    parser.add_argument("-p",
+    PARSER.add_argument("-p",
                         "--password",
                         type=str,
                         help="controller user password")
-    argss = parser.parse_args()
+    ARGSS = PARSER.parse_args()
 
-    if argss.server:
-        ctrl_svc = argss.server
+    if ARGSS.server:
+        CTRL_SVC = ARGSS.server
     elif ENV_CTRL_API_SVC in os.environ:
-        ctrl_svc = os.environ.get(ENV_CTRL_API_SVC)
+        CTRL_SVC = os.environ.get(ENV_CTRL_API_SVC)
     else:
         sys.exit("Controller API service endpoint must be specified.")
 
-    if argss.port:
-        port = argss.port
+    if ARGSS.port:
+        PORT = ARGSS.port
     elif ENV_EXPORTER_PORT in os.environ:
-        port = int(os.environ.get(ENV_EXPORTER_PORT))
+        PORT = int(os.environ.get(ENV_EXPORTER_PORT))
     else:
         sys.exit("Exporter port must be specified.")
 
-    if argss.username:
-        ctrl_user = argss.username
+    if ARGSS.username:
+        CTRL_USER = ARGSS.username
     elif ENV_CTRL_USERNAME in os.environ:
-        ctrl_user = os.environ.get(ENV_CTRL_USERNAME)
+        CTRL_USER = os.environ.get(ENV_CTRL_USERNAME)
     else:
-        ctrl_user = "admin"
+        CTRL_USER = "admin"
 
-    if argss.password:
-        ctrl_pass = argss.password
+    if ARGSS.password:
+        CTRL_PASS = ARGSS.password
     elif ENV_CTRL_PASSWORD in os.environ:
-        ctrl_pass = os.environ.get(ENV_CTRL_PASSWORD)
+        CTRL_PASS = os.environ.get(ENV_CTRL_PASSWORD)
     else:
-        ctrl_pass = "admin"
+        CTRL_PASS = "admin"
 
     if ENV_ENFORCER_STATS in os.environ:
         try:
-            enable_enforcer_stats = bool(os.environ.get(ENV_ENFORCER_STATS))
-        except:
-            enable_enforcer_stats = False
+            ENABLE_ENFORCER_STATS = bool(os.environ.get(ENV_ENFORCER_STATS))
+        except NameError:
+            ENABLE_ENFORCER_STATS = False
 
     # Login and get token
-    if _login("https://" + ctrl_svc, ctrl_user, ctrl_pass) < 0:
+    if _login("https://" + CTRL_SVC, CTRL_USER, CTRL_PASS) < 0:
         sys.exit(1)
 
     print("Start exporter server ...")
-    start_http_server(port)
+    start_http_server(PORT)
 
     print("Register collector ...")
-    collector = apiCollector(ctrl_svc, ctrl_user, ctrl_pass)
-    REGISTRY.register(collector)
-    signal.signal(signal.SIGTERM, collector.sigterm_handler)
+    COLLECTOR = NVApiCollector(CTRL_SVC, CTRL_USER, CTRL_PASS)
+    REGISTRY.register(COLLECTOR)
+    signal.signal(signal.SIGTERM, COLLECTOR.sigterm_handler)
 
     while True:
         time.sleep(30)

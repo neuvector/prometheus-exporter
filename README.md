@@ -130,5 +130,6 @@ $ sudo docker run -d -p 3000:3000 --name grafana grafana/grafana
 | nv_container_vulnerabilityHigh | Number of vulnerabilities of high severity (by service name) |
 | nv_container_vulnerabilityMedium | Number of vulnerabilities of medium severity (by service name) |
 | nv_log_events | Lists of security events |
-
+| nv_fed_master | Shows the status of all the connected clusters to the federated master |
+| nv_fed_worker | Shows the status of the cluster to the federated master  |
 
