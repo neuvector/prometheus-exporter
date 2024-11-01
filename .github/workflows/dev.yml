@@ -1,0 +1,38 @@
+name: dev build
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  build-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DEV_DOCKER_USERNAME }}
+          password: ${{ secrets.DEV_DOCKER_PASSWORD }}
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Create builder
+        run: make buildx-machine
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          file: package/Dockerfile
+          tags: ${{ secrets.DEV_BUILD_REPOSITORY }}/prometheus-exporter:${{github.run_number}}
+          build-args: |
+            COMMIT=${{ github.sha }}
+            VERSION=${{ github.ref_name }}
+          platforms: linux/arm64,linux/amd64 
+      - name: Retag
+        run: |
+          docker buildx imagetools create -t ${{ secrets.DEV_BUILD_REPOSITORY }}/prometheus-exporter:latest ${{ secrets.DEV_BUILD_REPOSITORY }}/prometheus-exporter:${{github.run_number}}
