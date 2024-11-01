@@ -38,6 +38,7 @@ jobs:
       with:
         push-to-public: true
         push-to-prime: false
+        make-target: push-image
         image: prometheus-exporter
         tag: ${{ env.TAG }}
         platforms: linux/amd64,linux/arm64
@@ -51,6 +52,7 @@ jobs:
       with:
         push-to-public: false
         push-to-prime: true
+        make-target: push-rancher-image
         image: neuvector-prometheus-exporter
         tag: ${{ env.TAG }}
         platforms: linux/amd64,linux/arm64
