@@ -63,11 +63,5 @@ build-image: buildx-machine ## build (and load) the container image targeting th
 push-image: buildx-machine
 	$(IMAGE_BUILDER) build -f package/Dockerfile \
 		--builder $(MACHINE) $(IMAGE_ARGS) $(IID_FILE_FLAG) $(BUILDX_ARGS) \
-		--build-arg VERSION=$(VERSION) --build-arg COMMIT=$(COMMIT) --platform=$(TARGET_PLATFORMS) -t "$(REPO)/prometheus-exporter:$(TAG)" --push .
-	@echo "Pushed $(IMAGE)"
-
-push-rancher-image: buildx-machine
-	$(IMAGE_BUILDER) build -f package/Dockerfile \
-		--builder $(MACHINE) $(IMAGE_ARGS) $(IID_FILE_FLAG) $(BUILDX_ARGS) \
-		--build-arg VERSION=$(VERSION) --build-arg COMMIT=$(COMMIT) --platform=$(TARGET_PLATFORMS) -t "$(REPO)/neuvector-prometheus-exporter:$(TAG)" --push .
-	@echo "Pushed $(IMAGE)"
+		--build-arg VERSION=$(VERSION) --build-arg COMMIT=$(COMMIT) --platform=$(TARGET_PLATFORMS) -t "$(REPO)/$(IMAGE_PREFIX)prometheus-exporter:$(TAG)" --push .
+	@echo "Pushed $(REPO)/$(IMAGE_PREFIX)prometheus-exporter:$(TAG)"
