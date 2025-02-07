@@ -406,6 +406,7 @@ class NVApiCollector:
             iwnamelist = []
             iclusterlist = []
             iwnslist = []
+            iwidlist = []
             iidlist = []
             iproc_name_list = []
             iproc_path_list = []
@@ -414,13 +415,14 @@ class NVApiCollector:
             ifile_name_list = []
 
             for c in json.loads(response.text)['incidents']:
+                iidlist.append(c['id'])
                 if 'workload_name' in c:
                     itimelist.append(c['reported_timestamp'])
                     inamelist.append(c['name'])
                     iwnamelist.append(c['workload_name'])
                     iclusterlist.append(c['cluster_name'])
                     iwnslist.append(c['workload_domain'] if 'workload_domain' in c else "")
-                    iidlist.append(c['workload_id'])
+                    iwidlist.append(c['workload_id'])
 
                     # Check proc_name
                     if 'proc_name' in c:
@@ -459,6 +461,7 @@ class NVApiCollector:
                                       'log': "incident",
                                       'fromname': iwnamelist[x],
                                       'fromns': iwnslist[x],
+                                      'fromid': iwidlist[x],
                                       'toname': " ",
                                       'tons': " ",
                                       'cluster': iclusterlist[x],
