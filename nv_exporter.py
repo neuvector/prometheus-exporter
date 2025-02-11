@@ -415,44 +415,50 @@ class NVApiCollector:
             ifile_name_list = []
 
             for c in json.loads(response.text)['incidents']:
+                itimelist.append(c['reported_timestamp'])
                 iidlist.append(c['id'])
+                inamelist.append(c['name'])
+
+                # Check proc_name
+                if 'proc_name' in c:
+                    iproc_name_list.append(c['proc_name'])
+                else:
+                    iproc_name_list.append("")
+
+                # Check proc_path
+                if 'proc_path' in c:
+                    iproc_path_list.append(c['proc_path'])
+                else:
+                    iproc_path_list.append("")
+
+                # Check proc_cmd
+                if 'proc_cmd' in c:
+                    iproc_cmd_list.append(c['proc_cmd'])
+                else:
+                    iproc_cmd_list.append("")
+
+                # Check file_path
+                if 'file_path' in c:
+                    ifile_path_list.append(c['file_path'])
+                else:
+                    ifile_path_list.append("")
+
+                # Check file_name
+                if 'file_name' in c:
+                    ifile_name_list.append(c['file_name'])
+                else:
+                    ifile_name_list.append("")
+
                 if 'workload_name' in c:
-                    itimelist.append(c['reported_timestamp'])
-                    inamelist.append(c['name'])
                     iwnamelist.append(c['workload_name'])
                     iclusterlist.append(c['cluster_name'])
-                    iwnslist.append(c['workload_domain'] if 'workload_domain' in c else "")
+                    iwnslist.append(c['workload_domain'])
                     iwidlist.append(c['workload_id'])
-
-                    # Check proc_name
-                    if 'proc_name' in c:
-                        iproc_name_list.append(c['proc_name'])
-                    else:
-                        iproc_name_list.append("")
-
-                    # Check proc_path
-                    if 'proc_path' in c:
-                        iproc_path_list.append(c['proc_path'])
-                    else:
-                        iproc_path_list.append("")
-
-                    # Check proc_cmd
-                    if 'proc_cmd' in c:
-                        iproc_cmd_list.append(c['proc_cmd'])
-                    else:
-                        iproc_cmd_list.append("")
-
-                    # Check file_path
-                    if 'file_path' in c:
-                        ifile_path_list.append(c['file_path'])
-                    else:
-                        ifile_path_list.append("")
-
-                    # Check file_name
-                    if 'file_name' in c:
-                        ifile_name_list.append(c['file_name'])
-                    else:
-                        ifile_name_list.append("")
+                else:
+                    iwnamelist.append("")
+                    iclusterlist.append("")
+                    iwnslist.append("")
+                    iwidlist.append("")
 
             for x in range(0, min(5, len(iidlist))):
                 metric.add_sample('nv_log_events',
