@@ -30,7 +30,7 @@ spec:
     spec:
       containers:
         - name: neuvector-prometheus-exporter-pod
-          image: neuvector/prometheus-exporter:latest
+          image: neuvector/prometheus-exporter:1.0.2
           imagePullPolicy: Always
           env:
             - name: CTRL_API_SERVICE
