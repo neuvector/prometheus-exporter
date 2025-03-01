@@ -1,4 +1,4 @@
-FROM registry.suse.com/bci/python:3.12
+FROM registry.suse.com/bci/python:3.13
 
 ARG COMMIT
 ARG VERSION
