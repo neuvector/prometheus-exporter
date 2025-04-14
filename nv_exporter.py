@@ -452,7 +452,7 @@ class NVApiCollector:
                 if 'workload_name' in c:
                     iwnamelist.append(c['workload_name'])
                     iclusterlist.append(c['cluster_name'])
-                    iwnslist.append(c['workload_domain'])
+                    iwnslist.append(c['workload_domain'] if 'workload_domain' in c else "")
                     iwidlist.append(c['workload_id'])
                 else:
                     iwnamelist.append("")
