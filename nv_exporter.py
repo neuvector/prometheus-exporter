@@ -496,10 +496,11 @@ class NVApiCollector:
                 vtimelist.append(c['reported_timestamp'])
                 vcnamelist.append(c['client_name'])
                 vcnslist.append(c['client_domain'] if 'client_domain' in c else "")
+                vcidlist.append(c['client_id'])
                 vnamelist.append("Network Violation")
                 vsnamelist.append(c['server_name'])
                 vsnslist.append(c['server_domain'] if 'server_domain' in c else "")
-                vidlist.append(c['client_id'] + c['server_id'])
+                vidlist.append(c['id'])
             for x in range(0, min(5, len(vidlist))):
                 metric.add_sample('nv_log_events',
                                   value=vtimelist[x] * 1000,
@@ -508,6 +509,7 @@ class NVApiCollector:
                                       'id': vidlist[x],
                                       'fromname': vcnamelist[x],
                                       'fromns': vcnslist[x],
+                                      'fromid': vcidlist[x],
                                       'toname': vsnamelist[x],
                                       'tons': vsnslist[x],
                                       'name': vnamelist[x],
