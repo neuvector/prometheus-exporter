@@ -489,6 +489,7 @@ class NVApiCollector:
             vnamelist = []
             vcnamelist = []
             vcnslist = []
+            vcidlist = []
             vsnamelist = []
             vsnslist = []
             vidlist = []
