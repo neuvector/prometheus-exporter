@@ -1,17 +1,10 @@
-FROM registry.suse.com/bci/python:3.13
+FROM registry.suse.com/bci/python:3.14-micro
 
 ARG COMMIT
 ARG VERSION
 
-WORKDIR /
-
-COPY package/requirements.txt /
-
-RUN python3 -m pip install --no-cache-dir -r /requirements.txt
+RUN python3 -m pip install -U setuptools
 RUN python3 -m pip install --upgrade prometheus_client requests
-RUN python3 -m venv .venv && source .venv/bin/activate && \
-    pip3 install --no-cache-dir -r /requirements.txt && \
-    pip3 install --upgrade prometheus_client requests
 COPY startup.sh /usr/local/bin
 COPY nv_exporter.py /usr/local/bin
 
