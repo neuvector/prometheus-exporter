@@ -1096,6 +1096,22 @@
           "unit": "short"
         },
         {
+          "alias": "Critical",
+          "colorMode": "value",
+          "colors": [
+            "#8F3BB8",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 0,
+          "mappingType": 1,
+          "pattern": "Value #C",
+          "thresholds": [],
+          "type": "number",
+          "unit": "short"
+        },
+        {
           "alias": "High",
           "colorMode": "value",
           "colors": [
@@ -1163,6 +1179,15 @@
           "intervalFactor": 2,
           "legendFormat": "",
           "refId": "B"
+        },
+        {
+          "expr": "sum(nv_container_vulnerabilityCritical) by (service)",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 2,
+          "legendFormat": "",
+          "refId": "C"
         }
       ],
       "timeFrom": null,
@@ -1212,6 +1237,22 @@
           "pattern": "Time",
           "thresholds": [],
           "type": "hidden",
+          "unit": "short"
+        },
+        {
+          "alias": "Critical",
+          "colorMode": "value",
+          "colors": [
+            "#8F3BB8",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "dateFormat": "YYYY-MM-DD HH:mm:ss",
+          "decimals": 0,
+          "mappingType": 1,
+          "pattern": "Value #C",
+          "thresholds": [],
+          "type": "number",
           "unit": "short"
         },
         {
@@ -1265,6 +1306,15 @@
           "intervalFactor": 2,
           "legendFormat": "",
           "refId": "B"
+        },
+        {
+          "expr": "sum(nv_image_vulnerabilityCritical) by (name)",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "intervalFactor": 2,
+          "legendFormat": "",
+          "refId": "C"
         }
       ],
       "timeFrom": null,
