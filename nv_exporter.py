@@ -298,6 +298,13 @@ class NVApiCollector:
                 response2 = self.get('/v1/scan/registry/' + c['name'] + '/images')
                 if response2:
                     for img in json.loads(response2.text)['images']:
+                        metric.add_sample('nv_image_vulnerabilityCritical',
+                                          value=img.get('critical', 0),
+                                          labels={
+                                              'name': "%s:%s" % (img['repository'], img['tag']),
+                                              'imageid': img['image_id'],
+                                              'target': ep
+                                          })
                         metric.add_sample('nv_image_vulnerabilityHigh',
                                           value=img['high'],
                                           labels={
@@ -321,7 +328,13 @@ class NVApiCollector:
             metric = Metric('nv_platform_vulnerability',
                             'platform vulnerability of ' + ep, 'gauge')
             for platform in json.loads(response.text)['platforms']:
-                if (platform['high'] != 0 or platform['medium'] != 0):
+                if (platform.get('critical', 0) != 0 or platform['high'] != 0 or platform['medium'] != 0):
+                    metric.add_sample('nv_platform_vulnerabilityCritical',
+                                    value=platform.get('critical', 0),
+                                    labels={
+                                        'name': platform['platform'],
+                                        'target': ep
+                                    })
                     metric.add_sample('nv_platform_vulnerabilityHigh',
                                     value=platform['high'],
                                     labels={
@@ -346,7 +359,13 @@ class NVApiCollector:
             for c in json.loads(response.text)['workloads']:
                 if c['service'] not in cvlist and c['service_mesh_sidecar'] is False:
                     scan = c['scan_summary']
-                    if scan != None and (scan['high'] != 0 or scan['medium'] != 0):
+                    if scan != None and (scan.get('critical', 0) != 0 or scan['high'] != 0 or scan['medium'] != 0):
+                        metric.add_sample('nv_container_vulnerabilityCritical',
+                                          value=scan.get('critical', 0),
+                                          labels={
+                                              'service': c['service'],
+                                              'target': ep
+                                          })
                         metric.add_sample('nv_container_vulnerabilityHigh',
                                           value=scan['high'],
                                           labels={

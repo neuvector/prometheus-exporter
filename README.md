@@ -29,8 +29,8 @@ Metric groups:
 - `enforcer` - enforcer CPU and memory usage
 - `host` - host memory usage
 - `admission` - number of allowed and denied Kubernetes admission requests
-- `image_vulnerability` - number of high and medium vulnerabilities for every scanned registry image
-- `container_vulnerability` - number of high and medium vulnerabilities for every service, reporting a single pod's status per service (excluding service mesh sidecars)
+- `image_vulnerability` - number of critical, high and medium vulnerabilities for every scanned registry image
+- `container_vulnerability` - number of critical, high and medium vulnerabilities for every service, reporting a single pod's status per service (excluding service mesh sidecars)
 - `log` - data for the latest threat, incident, and violation logs (latest 5 logs each)
 
 
@@ -125,8 +125,10 @@ $ sudo docker run -d -p 3000:3000 --name grafana grafana/grafana
 | nv_conversation_bytes | Network bandwidth of applications |
 | nv_admission_allowed | Number of allowed admission control requests |
 | nv_admission_denied | Number of denied admission control requests |
+| nv_image_vulnerabilityCritical | Number of vulnerabilities of critical severity (by image id) |
 | nv_image_vulnerabilityHigh | Number of vulnerabilities of high severity (by image id) |
 | nv_image_vulnerabilityMedium | Number of vulnerabilities of medium severity (by image id) |
+| nv_container_vulnerabilityCritical | Number of vulnerabilities of critical severity (by service name) |
 | nv_container_vulnerabilityHigh | Number of vulnerabilities of high severity (by service name) |
 | nv_container_vulnerabilityMedium | Number of vulnerabilities of medium severity (by service name) |
 | nv_log_events | Lists of security events |
